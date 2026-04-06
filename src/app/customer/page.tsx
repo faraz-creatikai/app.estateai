@@ -480,6 +480,7 @@ export default function Customer() {
       getCustomers();
       fetchFields();
       getTotalCustomerPage();
+      setCustomerTableLoader(false);
     }
     fetchAiAgents();
     fetchTodayCustomer();
