@@ -191,7 +191,7 @@ const TYPE_COLORS: Record<string, string> = {
         "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
     Calling:
         "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800",
-    Support:
+    Recommendation:
         "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-800",
     Operations:
         "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
@@ -204,12 +204,12 @@ const TYPE_ICON: Record<string, string | ReactElement> = {
     Followup: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335523/img-7_xjwzbl.png" alt="Followup" className=" object-contain w-10 h-10" />,
     Qualification: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-1_nz99v7.png" alt="Qualification" className=" object-contain w-10 h-10" />,
     Calling: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-6_mky5rb.png" alt="Qualification" className=" object-contain w-10 h-10" />,
-    Support: "🎧",
+    Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     Operations: "⚙️",
     Success: "🌟",
 };
 
-const ALL_TYPES = ["All", "Matching", "Followup", "Qualification", "Marketing", "Support", "Operations", /* "Success" */];
+const ALL_TYPES = ["All", "Matching", "Followup", "Qualification", "Marketing", "Recommendation", "Operations", /* "Success" */];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

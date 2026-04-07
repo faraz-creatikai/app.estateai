@@ -3,7 +3,7 @@
 import React, { useState, useEffect, JSX } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
-import { FaUserAlt, FaLock, FaPhone } from "react-icons/fa";
+import { FaUserAlt, FaLock, FaPhone, FaCog, FaGithub, FaGoogle } from "react-icons/fa";
 import { useAuth } from "@/context/AuthContext";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { registerRequestUser } from "@/store/requestusers/requestusers";
 import PopupMenu from "../component/popups/PopupMenu";
 import RegisterPopup from "../component/popups/RegisterPopup";
 import { passwordRules, ValidatePassword } from "../utils/ValidatePassword";
+import { IoMdMail } from "react-icons/io";
 
 
 type PasswordValidationResult = {
@@ -141,158 +142,119 @@ const Register = () => {
         setPasswordError("")
       }} />
       }
-      <div className="min-h-screen w-full flex justify-center bg-center bg-cover">
+      <div
+        className="min-h-screen w-full bg-cover bg-center bg-no-repeat relative"
+        style={{ backgroundImage: "url('https://res.cloudinary.com/djipgt6vc/image/upload/v1774335586/login-bg_myf3hh.png')" }}
+      >
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-slate-900/10 pointer-events-none" />
+
         <Toaster position="top-right" />
 
-        {/* LEFT PANEL (DESKTOP ONLY) */}
-        <div className="relative w-full flex flex-col items-center justify-between bg-[var(--color-primary-lighter)] dark:bg-[var(--color-secondary-darker)] p-10 max-lg:hidden">
-          <div className="self-start">
-            <div className=" relative">
-              <h2 className="font-bold text-2xl">
-                i<span className="text-[var(--color-secondary)]">big</span>data
-              </h2>
-              <p className=" absolute top-0  right-12 text-[8px] rounded-xl text-[var(--color-secondary)] font-normal border border-[var(--color-secondary)] px-[5px] py-[1px]">Domain</p>
-            </div>
-            <p className="text-gray-400 text-sm font-light mt-1">
-              Domain Insights, Made Easy
-            </p>
-          </div>
+        <Link href="/" className="absolute top-4 left-4 sm:top-6 sm:left-8 z-10">
+          <img
+            src="/estateai.png"
+            alt="EstateAI"
+            className="w-32 sm:w-40 md:w-48 lg:w-52 h-auto"
+          />
+        </Link>
+         <div className="flex items-center justify-center px-4 sm:px-6 lg:px-8 min-h-screen py-20 sm:py-24 lg:py-0">
+        <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-8 lg:gap-12">
+          {/* LOGO */}
 
-          <div className="text-center max-w-[350px]">
-            <img src="logo-register.png" className="w-full h-full" />
-          </div>
 
-          <div className="self-start text-gray-500">
-            <h2 className="text-[var(--color-secondary)] text-2xl font-bold mb-1">
-              Create Account
-            </h2>
-            <p>Register to manage everything efficiently.</p>
-          </div>
-        </div>
-
-        {/* RIGHT PANEL */}
-        <div className="flex flex-col justify-between items-center w-full max-lg:bg-[url('/loginbg.png')] max-lg:bg-cover max-lg:bg-center max-lg:bg-no-repeat min-h-full bg-white 
-    max-lg:text-white dark:bg-linear-to-b dark:from-[var(--color-primary)] dark:to-[var(--color-secondary)] max-lg:text-white max-lg:bg-linear-to-b max-lg:from-[var(--color-primary)]  max-lg:bg-linear-to-b 
-    max-lg:from-[var(--color-primary)] max-lg:to-fuchsia-900 px-1">
-
-          {/* MOBILE HEADER */}
-          <div className="self-start w-full px-5 py-5">
-            <div className="lg:hidden">
-              <div className=" relative">
-                <h2 className="font-bold text-2xl">
-                  i<span className="text-[var(--color-primary-lighter)]">big</span>data
-                </h2>
-                <p className=" absolute top-0  left-[90px] text-[8px] rounded-xl text-[var(--color-primary-lighter)] font-normal border border-[var(--color-primary-lighter)] px-[5px] py-[1px]">Domain</p>
-              </div>
-              <p className="text-[var(--color-primary-light)] text-sm font-light mt-1">
-                Domain Insights, Made Easy
-              </p>
-            </div>
-          </div>
 
           {/* FORM CARD */}
-          <div className="w-full max-w-[500px] flex flex-col justify-center items-center 
-      p-4 lg:p-8 py-8 rounded-lg bg-white">
+          <div
+            className="w-full max-w-sm sm:max-w-md lg:max-w-md text-white p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl sm:ml-16 lg:ml-26"
+            style={{
+              background:
+                "linear-gradient(160deg, #0b2a4a 0%, #0d3561 60%, #0a2440 100%)",
+              boxShadow:
+                "0 25px 60px rgba(13, 46, 94, 0.4), 0 0 0 1px rgba(255,255,255,0.05)",
+            }}
+          >
 
-            <h3 className="text-2xl font-semibold text-[var(--color-primary)] text-center ">
-              Register Account
-            </h3>
+            <h2 className="text-xs sm:text-sm text-gray-300 mb-1 tracking-widest uppercase">
+              CREATE YOUR ACCOUNT
+            </h2>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
+            <h1 className="text-lg sm:text-xl font-black mb-5 sm:mb-7">
+              Join EstateAI Platform
+            </h1>
+
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
 
               {/* FULL NAME */}
-              <div className="relative mt-2">
-                <FaUserAlt className="absolute left-3 top-3 text-gray-800" />
+              <div className="flex items-center gap-3 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-blue-200/20">
+                <FaUserAlt className="text-gray-400 text-sm flex-shrink-0" />
                 <input
                   onChange={(e) => setName(e.target.value)}
                   value={name}
                   type="text"
                   id="name"
+                  placeholder="Full Name"
                   required
-                  className="peer w-full pl-10 pt-4 pb-2 border-b border-gray-300 
-              text-gray-800 focus:border-purple-300 focus:outline-none bg-transparent"
+                  className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder-gray-400"
                 />
-                <label
-                  htmlFor="name"
-                  className={`absolute left-10 transition-all duration-200 ${name
-                    ? "-top-1.5 text-[var(--color-primary)] text-sm"
-                    : "top-3 text-gray-800 text-base"
-                    } peer-focus:-top-1.5 peer-focus:text-[var(--color-primary)] peer-focus:text-sm`}
-                >
-                  Full Name
-                </label>
+
               </div>
 
               {/* EMAIL */}
-              <div className="relative mt-2">
-                <FaUserAlt className="absolute left-3 top-3 text-gray-800" />
+              <div className="flex items-center gap-3 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-blue-200/20">
+                <IoMdMail className="text-gray-400 text-sm flex-shrink-0" />
                 <input
                   onChange={(e) => setEmail(e.target.value)}
                   value={email}
                   type="email"
                   id="email"
                   required
-                  className="peer w-full pl-10 pt-4 pb-2 border-b border-gray-300 
-              text-gray-800 focus:border-purple-300 focus:outline-none bg-transparent"
+                  placeholder="Email"
+                  className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder-gray-400"
                 />
-                <label
-                  htmlFor="email"
-                  className={`absolute left-10 transition-all duration-200 ${email
-                    ? "-top-1.5 text-[var(--color-primary)] text-sm"
-                    : "top-3 text-gray-800 text-base"
-                    } peer-focus:-top-1.5 peer-focus:text-[var(--color-primary)] peer-focus:text-sm`}
-                >
-                  Email Address
-                </label>
               </div>
 
               {/* PASSWORD */}
-              <div className="relative mt-4">
-                <FaLock className="absolute left-3 top-3 text-gray-800" />
+              <div className="flex items-center gap-3 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-blue-200/20">
+                <FaLock className="text-gray-400 text-sm flex-shrink-0" />
                 <input
                   onChange={(e) => setPassword(e.target.value)}
                   value={password}
                   type={showPassword ? "text" : "password"}
                   id="password"
                   required
-                  className="peer w-full pl-10 pt-4 pb-2 border-b border-gray-300 
-              text-gray-800 focus:border-purple-300 focus:outline-none bg-transparent"
+                  placeholder="Password"
+                  className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder-gray-400"
                 />
-                <label
-                  htmlFor="password"
-                  className={`absolute left-10 transition-all duration-200 ${password
-                    ? "-top-1.5 text-[var(--color-primary)] text-sm"
-                    : "top-3 text-gray-800 text-base"
-                    } peer-focus:-top-1.5 peer-focus:text-[var(--color-primary)] peer-focus:text-sm`}
-                >
-                  Password
-                </label>
+
                 <button
                   type="button"
                   onClick={togglePassword}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                  className="text-gray-400 hover:text-white transition flex-shrink-0"
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
               </div>
 
               {/* PASSWORD RULES */}
-              <div className="flex flex-col gap-1 text-sm font-extralight">
-                {passwordRules.map((rule, idx) => {
-                  const passed = rule.test.test(password);
-                  return (
-                    passwordError === rule.message && (
+
+              {passwordRules.map((rule, idx) => {
+                const passed = rule.test.test(password);
+                return (
+                  passwordError === rule.message && (
+                    <div className="flex flex-col gap-1 text-sm font-extralight">
                       <p key={idx} className={passed ? "text-green-500" : "text-red-500"}>
                         {rule.message}
                       </p>
-                    )
-                  );
-                })}
-              </div>
+                    </div>
+                  )
+                );
+              })}
+
 
               {/* PHONE */}
-              <div className="relative ">
-                <FaPhone className="absolute left-3 top-3 text-gray-800 rotate-[100deg]" />
+              <div className="flex items-center gap-3 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-blue-200/20">
+                <FaPhone className="text-gray-400 text-sm flex-shrink-0" />
                 <input
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -302,48 +264,76 @@ const Register = () => {
                   value={phone}
                   type="text"
                   id="phone"
-                  className="peer w-full pl-10 pt-4 pb-2 border-b border-gray-300 
-              text-gray-800 focus:border-purple-300 focus:outline-none bg-transparent"
+                  placeholder="Mobile Number"
+                  className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder-gray-400"
                 />
-                <label
-                  htmlFor="phone"
-                  className={`absolute left-10 transition-all duration-200 ${phone
-                    ? "-top-1.5 text-[var(--color-primary)] text-sm"
-                    : "top-3 text-gray-800 text-base"
-                    } peer-focus:-top-1.5 peer-focus:text-[var(--color-primary)] peer-focus:text-sm`}
-                >
-                  Phone Number
-                </label>
-                {phoneError && (
+
+                
+              </div>
+              {phoneError && (
                   <p className="text-red-500 text-sm mt-1">{phoneError}</p>
                 )}
-              </div>
 
               {/* SUBMIT */}
               <button
                 type={loading ? "button" : "submit"}
                 disabled={loading}
-                className="w-full py-3 mt-2 text-white text-lg font-medium rounded-full 
-            bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-darker)]
-            hover:from-[var(--color-primary-dark)] hover:to-[var(--color-secondary-darker)]
-            transition disabled:opacity-60"
+                className="w-full py-2.5 sm:py-3 rounded-full text-sm sm:text-base font-black uppercase hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 transition-all"
+                style={{
+                  background: "linear-gradient(90deg, #1e88e5, #29b6f6)",
+                  boxShadow: "0 0 24px rgba(30, 136, 229, 0.6), 0 4px 15px rgba(41, 182, 246, 0.4)",
+                }}
               >
                 {loading ? "Registering..." : "Register"}
               </button>
             </form>
 
+            {/* SOCIAL */}
+            <div className="text-center mt-4 sm:mt-6 text-gray-400 text-xs sm:text-sm">
+              Or sign up with:
+            </div>
+
+            <div className="flex justify-center gap-4 sm:gap-6 mt-3 sm:mt-4">
+              <button className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 flex items-center justify-center hover:scale-110 transition border border-white/10">
+                <FaGoogle className="text-lg sm:text-xl" style={{ color: "#4285F4" }} />
+              </button>
+              <button className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 flex items-center justify-center hover:scale-110 transition border border-white/10">
+                <FaGithub className="text-lg sm:text-xl text-white" />
+              </button>
+              <button className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 flex items-center justify-center hover:scale-110 transition border border-white/10">
+                <FaCog className="text-lg sm:text-xl" style={{ color: "#90caf9" }} />
+              </button>
+            </div>
+
             {/* FOOTER LINK */}
-            <div className="mt-6 flex justify-center gap-1 text-sm text-gray-800">
-              <p>Already have an account?</p>
-              <Link href="/admin" className="text-[var(--color-primary)] hover:underline">
+            <div className="text-center mt-4 sm:mt-6 text-gray-400 text-xs sm:text-sm">
+              Already have an account?{" "}
+              <Link href="/admin" className="text-white font-bold hover:underline">
                 Login
               </Link>
             </div>
           </div>
 
+          {/* RIGHT SIDE */}
+          <div className="hidden lg:flex flex-col items-center text-center max-w-md">
+            <div className="w-56 h-56 xl:w-72 xl:h-72 rounded-full flex items-center justify-center mb-6 xl:mb-8">
+              <img
+                src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335570/login-robo_y9a5vm.png"
+                className="w-48 h-48 xl:w-60 xl:h-60 object-contain"
+                alt="AI Robot"
+              />
+            </div>
+
+            <p className="text-[#1a3a5c] text-base xl:text-lg max-w-sm px-4 leading-relaxed font-medium">
+              Create your AI-powered real estate workspace and manage leads,
+              automation, and deals smarter.
+            </p>
+          </div>
+
           <div className="text-[var(--color-primary-light)] text-sm my-5">
             &copy;{currentYear} ibigdata, all rights reserved
           </div>
+        </div>
         </div>
       </div>
 

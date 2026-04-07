@@ -352,7 +352,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <ShieldUser className="w-6 h-6" />
         ) : (
           <img
-            src="/logo.webp"
+            src="/applogo.jpeg"
             alt="App Logo"
             className="h-12 w-40"
           />

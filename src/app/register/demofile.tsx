@@ -1,58 +1,43 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import toast, { Toaster } from "react-hot-toast";
-import { FaUserAlt, FaLock, FaGoogle, FaGithub, FaCog } from "react-icons/fa";
-import { useAuth } from "@/context/AuthContext";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Link from "next/link";
+import React, { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import {
+  FaUserAlt,
+  FaLock,
+  FaEye,
+  FaEyeSlash,
+  FaGoogle,
+  FaGithub,
+  FaCog,
+} from "react-icons/fa";
 
-
-const Login = () => {
-  const router = useRouter();
-  const { admin, isLoading, login } = useAuth();
+const Register = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false)
-  const [currentYear, setCurrentYear] = useState<number | null>(null);
-  const togglePassword = () => {
-    setShowPassword(!showPassword)
-  };
 
-
-  // Redirect if already logged in
-  useEffect(() => {
-    const date = new Date();
-    setCurrentYear(date.getFullYear());
-    if (admin) {
-      router.push("/dashboard");
-    }
-  }, [admin]);
-
-  if (isLoading || loading) {
-    return (
-      <div className="grid place-items-center min-h-screen w-full text-lg text-gray-600">
-        Loading...
-      </div>
-    );
-  }
-
-
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
-    await login({ email, password });
-    if (admin) router.push("/dashboard");
-    setLoading(false);
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match ❌");
+      return;
+    }
+
+    setLoading(true);
+    setTimeout(() => {
+      toast.success("Account created 🚀");
+      setLoading(false);
+    }, 1500);
   };
 
-  //bg-[url('/bgimage.webp')]
   return (
-    <div
+    <div 
       className="min-h-screen w-full bg-cover bg-center bg-no-repeat relative"
       style={{ backgroundImage: "url('https://res.cloudinary.com/djipgt6vc/image/upload/v1774335586/login-bg_myf3hh.png')" }}
     >
@@ -63,8 +48,8 @@ const Login = () => {
 
         {/* LOGO */}
         <Link href="/" className="absolute top-4 left-4 sm:top-6 sm:left-8 z-10">
-          <img
-            src="/estateai.png"
+          <img 
+            src="/assets/estateai.png" 
             alt="EstateAI"
             className="w-32 sm:w-40 md:w-48 lg:w-52 h-auto"
           />
@@ -96,7 +81,17 @@ const Login = () => {
 
               <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
 
-                
+                {/* Name */}
+                <div className="flex items-center gap-3 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-blue-200/20">
+                  <FaUserAlt className="text-gray-400 text-sm flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Full Name"
+                    className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder-gray-400"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
 
                 {/* Email */}
                 <div className="flex items-center gap-3 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-blue-200/20">
@@ -120,8 +115,8 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
-                  <button
-                    type="button"
+                  <button 
+                    type="button" 
                     onClick={() => setShowPassword(!showPassword)}
                     className="text-gray-400 hover:text-white transition flex-shrink-0"
                   >
@@ -129,7 +124,17 @@ const Login = () => {
                   </button>
                 </div>
 
-               
+                {/* Confirm Password */}
+                <div className="flex items-center gap-3 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-blue-200/20">
+                  <FaLock className="text-gray-400 text-sm flex-shrink-0" />
+                  <input
+                    type="password"
+                    placeholder="Confirm Password"
+                    className="bg-transparent outline-none w-full text-white text-sm sm:text-base placeholder-gray-400"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
 
                 {/* BUTTON */}
                 <button
@@ -193,4 +198,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

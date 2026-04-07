@@ -290,6 +290,26 @@ export const getQualification = async (data: any) => {
   }
 };
 
+export const getRecommendedCustomers = async (data: any) => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.RECOMENDCUSTOMER, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      credentials: "include"
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    const json = await response.json(); // ✅ new variable
+    return json;
+
+  } catch (error) {
+    console.log("SERVER ERROR: ", error);
+    return null;
+  }
+};
+
 export const startCallByAIAgent = async (data: any) => {
   try {
     const response = await fetch(API_ROUTES.CUSTOMER.AGENTCALLING, {

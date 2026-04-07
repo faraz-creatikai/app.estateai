@@ -79,6 +79,7 @@ import { HiCalendar } from "react-icons/hi2";
 import { create } from "domain";
 import QualificationAgentWorkspace from "../component/aiagents/QualificationAgentWorkspace";
 import CallingAgentWorkspace from "../component/aiagents/CallingAgentWorkspace";
+import RecommendAgentWorkspace from "../component/aiagents/RecommendAgentWorkspace";
 
 
 interface DeleteAllDialogDataInterface { }
@@ -480,7 +481,6 @@ export default function Customer() {
       getCustomers();
       fetchFields();
       getTotalCustomerPage();
-      setCustomerTableLoader(false);
     }
     fetchAiAgents();
     fetchTodayCustomer();
@@ -1745,6 +1745,7 @@ export default function Customer() {
     Followup: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335523/img-7_xjwzbl.png" alt="Followup" className=" object-contain w-10 h-10" />,
     Matching: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-2_l1xdll.png" alt="Matching" className="object-contain w-10 h-10" />,
     Qualification: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-1_nz99v7.png" alt="Qualification" className=" object-contain w-10 h-10" />,
+     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     default: "AG",
   };
 
@@ -3115,6 +3116,12 @@ export default function Customer() {
                 ) : selectedAgent && selectedAgent.type === "Qualification" ? (
                   <div className="flex-1 overflow-hidden px-6 py-4">
                     <QualificationAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                  </div>
+
+                  /* ── RECOMMEND CUSTOMER STATE ── */
+                ): selectedAgent && selectedAgent.type === "Recommendation" ? (
+                  <div className="flex-1 overflow-hidden px-6 py-4">
+                    <RecommendAgentWorkspace isOpen={isAIAgentsDialogOpen} />
                   </div>
 
                   /* ── CALLING STATE ── */

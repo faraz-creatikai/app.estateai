@@ -85,38 +85,38 @@
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 
 
-  /*custom colors */
+
  /*custom colors */
-  --color-primary: #00ACC1;
-  --color-primary-dark: #0097A7;
-  --color-primary-darker: #00838F;
-  --color-primary-light:#CFFAFE;
-  --color-primary-lighter:#E0F7FA;
+  --color-primary: #0066cc;
+--color-primary-dark: #005bb8;
+--color-primary-darker: #004c99;
+--color-primary-light: #cce0ff;
+--color-primary-lighter: #e6f0ff;
 
-  --color-secondary: #22d3ee;
-  --color-secondary-dark: #06b6d4;
-  --color-secondary-darker: #164e63;
-  --color-secondary-light:#80deea;
+--color-secondary: #0066cc;
+--color-secondary-dark: #005bb8;
+--color-secondary-darker: #004c99;
+--color-secondary-light: #cce0ff;
 
-  --color-accent: #A5D6A7;
-  --color-muted: #C8E6C9;
-  --color-destructive: #F87171;
+--color-accent: #99c2ff;
+--color-muted: #cce0ff;
+--color-destructive: #F87171;
 
-  /* Additional colors */
-  --color-gray: #6b7280;
-  --color-textlightdark: #ffffff;
-  --color-bglightdark:#000000;
+/* Additional colors */
+--color-gray: #6b7280;
+--color-textlightdark: #ffffff;
+--color-bglightdark: #000000;
 
-  /* table phone screen color */
-   --table: #7888e4;
+/* table phone screen color */
+--table: #4d79ff;
 
-    /* dark/light */
+/* dark/light */
 
-  --color-bgdark:#04171c;
-  --color-bglight:white;
+--color-bgdark: #04171c;
+--color-bglight: white;
 
-  --color-childbglight:#EDE9FE;
-  --color-childbgdark:#052b36;
+--color-childbglight: #e6f0ff;
+--color-childbgdark: #052b36;
 
   --color-txtdark:black;
   --color-txtlight:white;
