@@ -264,7 +264,7 @@ const TodayCustomerDialog = ({
                                             className={`transition-colors duration-[120ms] group
   ${selectedCustomers.includes(item._id)
                                                     ? 'bg-blue-50 dark:bg-blue-900/20'
-                                                    : 'hover:bg-[color-mix(in_srgb,var(--color-primary,#4f46e5)_5%,white)]'}
+                                                    : 'hover:bg-[color-mix(in_srgb,var(--color-primary,#4f46e5)_5%,white)] dark:hover:bg-[color-mix(in_srgb,var(--color-primary,#4f46e5)_12%,var(--color-childbgdark,#161922))]'}
 `}   >
                                             <td className="px-[10px]">
                                                 <input
@@ -310,10 +310,10 @@ const TodayCustomerDialog = ({
                                                 <span className="line-clamp-2">{item.Description || '—'}</span>
                                             </td>
                                             {/* Action */}
-                                            <td className=' flex flex-wrap justify-center items-center shadow-[-2px_0_8px_rgba(0,0,0,0.04)] dark:shadow-[-2px_0_8px_rgba(0,0,0,0.2)]'>
+                                            <td className=' flex flex-wrap justify-center items-center '>
                                                {
                                                 onEdit && (
-                                                    <div className="px-[15px] py-3 border-b border-black/5 dark:border-white/5 align-middle sticky right-0  dark:bg-[var(--color-childbgdark,#161922)]  group-hover:bg-[color-mix(in_srgb,var(--color-primary,#4f46e5)_5%,white)] dark:group-hover:bg-[color-mix(in_srgb,var(--color-primary,#4f46e5)_12%,var(--color-childbgdark,#161922))]">
+                                                    <div className="px-[15px] py-3 border-b border-black/5 dark:border-white/5 align-middle sticky right-0    ">
                                                     <div className="flex justify-center">
                                                         <button
 
@@ -328,7 +328,7 @@ const TodayCustomerDialog = ({
                                                 )
                                             }
                                                 {onDelete && (
-                                                <div className="px-[15px] py-3  align-middle sticky right-0  dark:bg-[var(--color-childbgdark,#161922)]  group-hover:bg-[color-mix(in_srgb,var(--color-primary,#4f46e5)_5%,white)] dark:group-hover:bg-[color-mix(in_srgb,var(--color-primary,#4f46e5)_12%,var(--color-childbgdark,#161922))]">
+                                                <div className="px-[15px] py-3  align-middle sticky right-0    ">
                                                     <div className="flex justify-center">
                                                         <button
 

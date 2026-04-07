@@ -80,6 +80,7 @@ import { create } from "domain";
 import QualificationAgentWorkspace from "../component/aiagents/QualificationAgentWorkspace";
 import CallingAgentWorkspace from "../component/aiagents/CallingAgentWorkspace";
 import RecommendAgentWorkspace from "../component/aiagents/RecommendAgentWorkspace";
+import AIAgentSidebar from "../component/aiagents/AIAgentSidebar";
 
 
 interface DeleteAllDialogDataInterface { }
@@ -1745,7 +1746,7 @@ export default function Customer() {
     Followup: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335523/img-7_xjwzbl.png" alt="Followup" className=" object-contain w-10 h-10" />,
     Matching: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-2_l1xdll.png" alt="Matching" className="object-contain w-10 h-10" />,
     Qualification: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-1_nz99v7.png" alt="Qualification" className=" object-contain w-10 h-10" />,
-     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
+    Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     default: "AG",
   };
 
@@ -2694,197 +2695,13 @@ export default function Customer() {
             <div className="flex flex-row relative overflow-hidden rounded-t-2xl h-[100%] w-full" style={{ background: "#ffffff" }}>
 
               {/* ════════════════════════════════════════════
-        LEFT DARK SIDEBAR
+                     LEFT DARK SIDEBAR
     ════════════════════════════════════════════ */}
-              <div
-                className="w-[250px] flex-shrink-0  flex flex-col relative overflow-hidden "
-                style={{ background: "#0d1117", borderRight: "1px solid rgba(255,255,255,0.07)" }}
-              >
-
-                <button
-                  onClick={() => setIsAIAgentDialogOpen(false)}
-                  className="w-7 h-7 z-50 cursor-pointer  absolute top-4 right-2  flex items-center justify-center rounded-lg bg-transparent hover:text-[#d5d5d5] text-[#94a3b8]  transition-all cursor-pointer"
-                >
-                  <BsArrowLeftShort size={30} />
-                </button>
-                {/* Grid texture */}
-                <div
-                  className="absolute inset-0 pointer-events-none opacity-40"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)",
-                    backgroundSize: "24px 24px",
-                  }}
-                />
-                {/* Top glow */}
-                <div
-                  className="absolute -top-10 -left-10 w-48 h-48 rounded-full pointer-events-none"
-                  style={{ background: "radial-gradient(circle, rgba(56,189,248,0.18) 0%, transparent 70%)" }}
-                />
-
-                {/* ── Agent identity ── */}
-                <div className="relative z-10 px-4 pt-5 pb-3">
-                  <div className="relative inline-block mb-3">
-                    <div
-                      className="w-11 h-11 rounded-[14px] flex items-center justify-center text-white text-[13px] font-semibold"
-                      style={{
-                        background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
-                        boxShadow: "0 0 0 1px rgba(255,255,255,0.1), 0 4px 14px rgba(2,132,199,0.4)",
-                      }}
-                    >
-                      {/* {selectedAgent?.name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() ?? "AG"} */}
-                      {AGENTS_TYPE_ICON[selectedAgent?.type ?? "default"]}
-                    </div>
-                    <span
-                      className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
-                      style={{ background: "#10b981", borderColor: "#0d1117", boxShadow: "0 0 6px rgba(16,185,129,0.6)" }}
-                    />
-                  </div>
-
-                  <p className="text-[13px] font-semibold leading-tight" style={{ color: "#e6edf3" }}>
-                    {selectedAgent?.name ?? "AI Genie Agent"}
-                  </p>
-                  <p className="text-[10px] mt-0.5 font-mono" style={{ color: "#8b949e" }}>
-                    {selectedAgent?.type?.toLowerCase() ?? "matching"} · v2.1
-                  </p>
-
-                  {/* Badges */}
-                  <div className="flex flex-wrap gap-1 mt-2.5">
-                    {selectedAgent?.type && (
-                      <span
-                        className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded-full"
-                        style={{ color: "#38bdf8", background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.25)" }}
-                      >
-                        {selectedAgent.type}
-                      </span>
-                    )}
-                    {selectedAgent?.campaign && (
-                      <span
-                        className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded-full"
-                        style={{ color: "#fbbf24", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)" }}
-                      >
-                        {selectedAgent.campaign}
-                      </span>
-                    )}
-                    {selectedAgent?.targetSegment && (
-                      <span
-                        className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded-full"
-                        style={{ color: "#34d399", background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.25)" }}
-                      >
-                        {selectedAgent.targetSegment}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div className="mx-4 relative z-10" style={{ height: "1px", background: "rgba(255,255,255,0.07)" }} />
-
-                {/* ── Stats with progress bars ── */}
-                <div className="relative z-10 px-4 py-3 flex flex-col gap-2.5">
-                  {[
-                    { label: "Leads processed", val: "1,240", pct: 82 },
-                    { label: "Match accuracy", val: "84%", pct: 84 },
-                    { label: "Avg. response", val: "3.2s", pct: 55 },
-                  ].map((s) => (
-                    <div key={s.label}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px]" style={{ color: "#8b949e" }}>{s.label}</span>
-                        <span className="text-[11px] font-medium font-mono" style={{ color: "#e6edf3" }}>{s.val}</span>
-                      </div>
-                      <div className="h-[2px] rounded-full" style={{ background: "#21262d" }}>
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${s.pct}%`, background: "linear-gradient(90deg, #0ea5e9, #38bdf8)" }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Divider */}
-                <div className="mx-4 relative z-10" style={{ height: "1px", background: "rgba(255,255,255,0.07)" }} />
-
-                {/* ── Nav ── */}
-                <div className="relative z-10 flex-1 px-2.5 py-2 flex flex-col gap-0.5 overflow-y-auto">
-                  <p className="text-[9px] font-semibold uppercase tracking-widest px-1.5 py-1.5" style={{ color: "#8b949e" }}>
-                    Actions
-                  </p>
-
-                  {[
-                    {
-                      label: "Lead Search", count: 12, active: selectedAgent?.type === "Matching",
-                      icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="7" cy="7" r="5" /><path d="M11 11l3 3" /></svg>
-                    },
-                    {
-                      label: "Follow-ups", count: 5, active: selectedAgent?.type === "Followup",
-                      icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M8 2v4l3 3M14 8A6 6 0 112 8a6 6 0 0112 0z" /></svg>
-                    },
-                    {
-                      label: "Reports", count: 3, active: false,
-                      icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><rect x="2" y="3" width="12" height="9" rx="1.5" /><path d="M5 12v1.5M11 12v1.5M5.5 6.5h5M5.5 9h3" /></svg>
-                    },
-                    {
-                      label: "Segments", count: null, active: false,
-                      icon: <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="8" cy="5" r="2.5" /><path d="M3 13c0-2.76 2.24-5 5-5s5 2.24 5 5" /></svg>
-                    },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-[8px] cursor-pointer"
-                      style={{
-                        background: item.active ? "rgba(56,189,248,0.1)" : "transparent",
-                        border: item.active ? "1px solid rgba(56,189,248,0.2)" : "1px solid transparent",
-                      }}
-                    >
-                      <span style={{ color: item.active ? "#38bdf8" : "#8b949e", opacity: item.active ? 1 : 0.7 }}>
-                        {item.icon}
-                      </span>
-                      <span className="text-[11px] font-medium flex-1" style={{ color: item.active ? "#38bdf8" : "#8b949e" }}>
-                        {item.label}
-                      </span>
-                      {item.count != null && (
-                        <span
-                          className="text-[9px] font-mono px-1.5 py-0.5 rounded-full"
-                          style={{
-                            background: item.active ? "rgba(56,189,248,0.15)" : "#21262d",
-                            color: item.active ? "#38bdf8" : "#8b949e",
-                          }}
-                        >
-                          {item.count}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-
-                  <p className="text-[9px] font-semibold uppercase tracking-widest px-1.5 pt-3 pb-1.5" style={{ color: "#8b949e" }}>
-                    History
-                  </p>
-                  <div
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-[8px] cursor-pointer"
-                    style={{ border: "1px solid transparent" }}
-                  >
-                    <span style={{ color: "#8b949e", opacity: 0.7 }}>
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-                        <path d="M2 4h12M2 8h8M2 12h5" />
-                      </svg>
-                    </span>
-                    <span className="text-[11px]" style={{ color: "#8b949e" }}>Past searches</span>
-                  </div>
-                </div>
-
-                {/* ── Footer: status ── */}
-                <div
-                  className="relative z-10 flex items-center gap-2 px-4 py-3"
-                  style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
-                >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full animate-pulse"
-                    style={{ background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,0.2)" }}
-                  />
-                  <span className="text-[10px] font-mono" style={{ color: "#8b949e" }}>Agent online</span>
-                </div>
-              </div>
+              <AIAgentSidebar
+                selectedAgent={selectedAgent}
+                AGENTS_TYPE_ICON={AGENTS_TYPE_ICON}
+                onClose={() => setIsAIAgentDialogOpen(false)}
+              />
 
 
               {/* ════════════════════════════════════════════
@@ -3119,7 +2936,7 @@ export default function Customer() {
                   </div>
 
                   /* ── RECOMMEND CUSTOMER STATE ── */
-                ): selectedAgent && selectedAgent.type === "Recommendation" ? (
+                ) : selectedAgent && selectedAgent.type === "Recommendation" ? (
                   <div className="flex-1 overflow-hidden px-6 py-4">
                     <RecommendAgentWorkspace isOpen={isAIAgentsDialogOpen} />
                   </div>

@@ -41,7 +41,7 @@ const BottomPopup: React.FC<PopupMenuProps> = ({
     >
       {/* POPUP */}
       <div
-        className={`relative bg-white shadow-2xl h-full rounded-xl w-full max-w-[1200px] mx-1 transition-transform duration-300 ease-out ${
+        className={`relative bg-white shadow-2xl h-full rounded-xl w-full max-w-[1210px] mx-1 transition-transform duration-300 ease-out ${
           isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
         }`}
       
