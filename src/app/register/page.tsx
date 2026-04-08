@@ -143,8 +143,8 @@ const Register = () => {
       }} />
       }
       <div
-        className="min-h-screen w-full bg-cover bg-center bg-no-repeat relative"
-        style={{ backgroundImage: "url('https://res.cloudinary.com/djipgt6vc/image/upload/v1774335586/login-bg_myf3hh.png')" }}
+        className="min-h-screen w-full bg-cover bg-center bg-no-repeat relative sm:bg-[url('https://res.cloudinary.com/djipgt6vc/image/upload/v1774335586/login-bg_myf3hh.png')] bg-[url('https://res.cloudinary.com/djipgt6vc/image/upload/v1774335568/login-bg1_tg2ma5.png')]" 
+       
       >
         {/* Overlay */}
         <div className="absolute inset-0 bg-slate-900/10 pointer-events-none" />
@@ -155,35 +155,35 @@ const Register = () => {
           <img
             src="/estateai.png"
             alt="EstateAI"
-            className="w-32 sm:w-40 md:w-48 lg:w-52 h-auto"
+            className="w-58 sm:w-40 md:w-48 lg:w-52 h-auto"
           />
         </Link>
-         <div className="flex items-center justify-center px-4 sm:px-6 lg:px-8 min-h-screen py-20 sm:py-24 lg:py-0">
-        <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-8 lg:gap-12">
+         <div className="flex items-center justify-center px-0  sm:px-6 lg:px-8 min-h-screen py-10 sm:py-24 lg:py-0">
+        <div className=" w-full sm:max-w-5xl px-3  sm:max-w-5xl flex flex-col lg:flex-row items-center justify-center  lg:justify-between gap-0  lg:gap-12">
           {/* LOGO */}
 
 
 
           {/* FORM CARD */}
-          <div
-            className="w-full max-w-sm sm:max-w-md lg:max-w-md text-white p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl sm:ml-16 lg:ml-26"
-            style={{
-              background:
-                "linear-gradient(160deg, #0b2a4a 0%, #0d3561 60%, #0a2440 100%)",
-              boxShadow:
-                "0 25px 60px rgba(13, 46, 94, 0.4), 0 0 0 1px rgba(255,255,255,0.05)",
-            }}
-          >
+<div
+  className="max-sm:min-w-full w-full  min-h-[70vh] max-sm:mt-20 sm:min-h-0 max-w-sm sm:max-w-md lg:max-w-md text-white py-6 px-4 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl sm:ml-16 lg:ml-26 flex flex-col justify-center"
+  style={{
+    background:
+      "linear-gradient(160deg, #0b2a4a 0%, #0d3561 60%, #0a2440 100%)",
+    boxShadow:
+      "0 25px 60px rgba(13, 46, 94, 0.4), 0 0 0 1px rgba(255,255,255,0.05)",
+  }}
+>
 
             <h2 className="text-xs sm:text-sm text-gray-300 mb-1 tracking-widest uppercase">
               CREATE YOUR ACCOUNT
             </h2>
 
-            <h1 className="text-lg sm:text-xl font-black mb-5 sm:mb-7">
+            <h1 className="text-2xl sm:text-3xl font-black mb-5 sm:mb-7">
               Join EstateAI Platform
             </h1>
 
-            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-4">
 
               {/* FULL NAME */}
               <div className="flex items-center gap-3 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 border border-blue-200/20">
@@ -330,7 +330,7 @@ const Register = () => {
             </p>
           </div>
 
-          <div className="text-[var(--color-primary-light)] text-sm my-5">
+          <div className="text-[#0a2440] text-sm my-5 sm:hidden">
             &copy;{currentYear} ibigdata, all rights reserved
           </div>
         </div>
