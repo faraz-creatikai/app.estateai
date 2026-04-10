@@ -81,6 +81,7 @@ import QualificationAgentWorkspace from "../component/aiagents/QualificationAgen
 import CallingAgentWorkspace from "../component/aiagents/CallingAgentWorkspace";
 import RecommendAgentWorkspace from "../component/aiagents/RecommendAgentWorkspace";
 import AIAgentSidebar from "../component/aiagents/AIAgentSidebar";
+import DataMiningAgentWorkspace from "../component/aiagents/DataMiningAgentWorkspace";
 
 
 interface DeleteAllDialogDataInterface { }
@@ -1747,6 +1748,7 @@ export default function Customer() {
     Matching: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-2_l1xdll.png" alt="Matching" className="object-contain w-10 h-10" />,
     Qualification: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-1_nz99v7.png" alt="Qualification" className=" object-contain w-10 h-10" />,
     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
+    Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Mining" className=" object-contain w-10 h-10" />,
     default: "AG",
   };
 
@@ -2696,7 +2698,7 @@ export default function Customer() {
 
               {/* ════════════════════════════════════════════
                      LEFT DARK SIDEBAR
-    ════════════════════════════════════════════ */}
+ ════════════════════════════════════════════ */}
               <AIAgentSidebar
                 selectedAgent={selectedAgent}
                 AGENTS_TYPE_ICON={AGENTS_TYPE_ICON}
@@ -2951,7 +2953,13 @@ export default function Customer() {
                     <FollowupAgentWorkspace data={selectedAgent} />
                   </div>
 
-                  /* ── Qualification STATE ── */
+                  /* ── Data Mining STATE ── */
+                ): selectedAgent && selectedAgent.type === "Mining" ? (
+                  <div className="flex-1 overflow-hidden px-6 py-4">
+                    <DataMiningAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                  </div>
+
+                  /* ── Error STATE ── */
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center py-16 text-center px-6">
                     <div

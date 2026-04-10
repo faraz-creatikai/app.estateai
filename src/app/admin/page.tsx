@@ -62,7 +62,7 @@ const Login = () => {
   <div className="min-h-screen w-full relative overflow-hidden">
 
     {/* LOGO */}
-    <Link href="/" className="absolute top-4 left-4 sm:top-6 sm:left-8 z-10">
+    <Link href="https://estateai.in" className="absolute top-4 left-4 sm:top-6 sm:left-8 z-10">
       <img
         src="/estateai.png"
         alt="EstateAI"

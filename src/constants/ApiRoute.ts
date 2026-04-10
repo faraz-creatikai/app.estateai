@@ -36,6 +36,7 @@ export const API_ROUTES = {
     CUSTOMEREXCELHEADERS: `${BASE_URL}/customer/import/headers`,
     ASSIGNCUSTOMER: `${BASE_URL}/customer/assign`,
     QUALIFYCUSTOMER: `${BASE_URL}/customer/qualification-agent`,
+    DATAMINING: `${BASE_URL}/customer/data-mining`,
     RECOMENDCUSTOMER: `${BASE_URL}/customer/recommended-customers`,
     AGENTCALLING: `${BASE_URL}/customer/agent-call`,
     GETCALLLOGS: `${BASE_URL}/customer/getcalllogs`,

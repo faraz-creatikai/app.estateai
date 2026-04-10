@@ -310,6 +310,20 @@ export const getRecommendedCustomers = async (data: any) => {
   }
 };
 
+export const dataMining= async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.DATAMINING, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
 export const startCallByAIAgent = async (data: any) => {
   try {
     const response = await fetch(API_ROUTES.CUSTOMER.AGENTCALLING, {
