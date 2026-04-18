@@ -167,9 +167,10 @@ export default function MinedLeads() {
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [campaignOptions, setCampaignOptions] = useState<string[]>([]);
     const [selectedCampaign, setSelectedCampaign] = useState<string>("");
+    const [isConverting, setIsConverting] = useState(false);
 
 
-    
+
 
 
     useEffect(() => {
@@ -264,23 +265,24 @@ export default function MinedLeads() {
         const selectedLeads = leads.filter((l) => selected.has(l.id));
 
         const formatted = selectedLeads.map((lead) => {
-  const extracted = extractPhoneNumber(lead.content);
+            const extracted = extractPhoneNumber(lead.content);
 
-  return {
-    data: lead,
-    ContactNumber: extracted || "1010101010", // ✅ default fallback
-  };
-});
+            return {
+                data: lead,
+                ContactNumber: extracted || "1010101010", // ✅ default fallback
+            };
+        });
 
         setConversionData(formatted);
         setIsPopupOpen(true);
     };
 
     const handleConvertSingle = (lead: MinedLead) => {
+        const extracted = extractPhoneNumber(lead.content);
         setConversionData([
             {
                 data: lead,
-                ContactNumber: "",
+                ContactNumber: extracted || "1010101010",
             },
         ]);
         setIsPopupOpen(true);
@@ -299,18 +301,15 @@ export default function MinedLeads() {
         const invalid = conversionData.some(
             (l) => !/^\d{10}$/.test(l.ContactNumber)
         );
-
         if (invalid) {
             toast.error("Each contact number must be exactly 10 digits");
             return;
         }
-
         if (!selectedCampaign) {
             toast.error("Please select a campaign");
             return;
         }
 
-        // 🔥 transform payload here
         const payload = {
             leads: conversionData.map((item) => ({
                 data: {
@@ -323,22 +322,21 @@ export default function MinedLeads() {
             })),
         };
 
-        console.log("payload is", payload);
-
-
-        const response = await convertMinedLead(payload);
-        if (response) {
-            toast.success("Leads converted successfully");
-
-            setIsPopupOpen(false);
-            setSelected(new Set());
-            setConversionData([]);
-            return;
+        setIsConverting(true);
+        try {
+            const response = await convertMinedLead(payload);
+            if (response) {
+                toast.success("Leads converted successfully");
+                setIsPopupOpen(false);
+                setSelected(new Set());
+                setConversionData([]);
+                return;
+            }
+            toast.error("Conversion failed");
+        } finally {
+            setIsConverting(false);
         }
-        toast.error("Conversion failed");
-
     };
-
 
 
     /* ── Page numbers ── */
@@ -363,61 +361,228 @@ export default function MinedLeads() {
             <Toaster position="top-right" />
 
             <PopupMenu isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
-                <div className="bg-white w-full max-w-2xl rounded-xl shadow-lg p-6">
-                    <h2 className="text-lg font-semibold mb-4">Convert Leads</h2>
-                    <div className="mb-4">
-                        <SingleSelect
-                            label="Select Campaign"
-                            options={campaignOptions}
-                            value={selectedCampaign}
-                            onChange={(val) => setSelectedCampaign(val)}
-                            isSearchable
-                        />
-                    </div>
-                    <div className="flex flex-col gap-4 max-h-[60vh] overflow-auto">
-                        {conversionData.map((item, index) => (
-                            <div
-                                key={item.data.id}
-                                className="border border-gray-200 rounded-lg p-3 flex flex-col gap-2"
-                            >
-                                <div className="text-sm font-semibold text-gray-800">
-                                    {item.data.author}
+
+                {/* ── Modal Shell: flex column, capped to viewport ── */}
+                <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)]">
+
+                    {/* ── Header (fixed, never scrolls) ── */}
+                    <div className="relative shrink-0 bg-[var(--color-primary)] px-7 pt-4 pb-10">
+                        <div className="absolute -top-6 -right-6 size-36 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+                        <div className="absolute top-2 right-20 size-14 rounded-full bg-white/5 blur-xl pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 right-0 h-6 bg-white rounded-t-[2rem]" />
+
+                        <div className="relative flex items-start justify-between">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="relative flex size-2">
+                                        <span className="animate-ping absolute inline-flex size-full rounded-full bg-white/50 opacity-75" />
+                                        <span className="relative rounded-full size-2 bg-white/80" />
+                                    </span>
+                                    <span className="text-[10px] font-bold text-white/50 tracking-[0.18em] uppercase">Lead Pipeline</span>
                                 </div>
-
-                                <div className="text-xs text-gray-400 line-clamp-2">
-                                    {item.data.title}
-                                </div>
-
-
-
-                                <input
-                                    type="text"
-                                    placeholder="Enter Contact Number"
-                                    value={item.ContactNumber}
-                                    onChange={(e) =>
-                                        handleNumberChange(index, e.target.value)
-                                    }
-                                    className="h-9 px-3 text-sm border border-gray-200 rounded-lg outline-none focus:border-[var(--color-primary)]"
-                                />
+                                <h2 className="text-[1.65rem] font-black text-white tracking-tight leading-none">Convert Leads</h2>
+                                <p className="text-xs text-white/50 mt-1.5 font-medium">
+                                    {conversionData.length} lead{conversionData.length !== 1 ? "s" : ""} selected · assign a campaign to proceed
+                                </p>
                             </div>
-                        ))}
+                            <button
+                                onClick={() => setIsPopupOpen(false)}
+                                className="size-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white/70 hover:text-white hover:rotate-90 transition-all duration-200"
+                            >
+                                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-5">
-                        <button
-                            onClick={() => setIsPopupOpen(false)}
-                            className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100"
-                        >
-                            Cancel
-                        </button>
+                    {/* ── Scrollable Body (grows to fill, clips overflow) ── */}
+                    <div className="flex-1 flex flex-col overflow-hidden px-6 pb-0">
 
-                        <button
-                            onClick={handleFinalConvert}
-                            className="px-4 py-2 text-sm rounded-lg bg-[var(--color-primary)] text-white"
+                        {/* Campaign Selector (shrink-0 — never pushed off screen) */}
+                        <div className="shrink-0 pt-0 pb-4">
+                            <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-[0.14em] mb-2">
+                                <svg className="size-3 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+                                </svg>
+                                Target Campaign
+                            </label>
+                            <SingleSelect
+                                label="Select Campaign"
+                                options={campaignOptions}
+                                value={selectedCampaign}
+                                onChange={(val) => setSelectedCampaign(val)}
+                                isSearchable
+                            />
+                        </div>
+
+                        {/* Divider (shrink-0) */}
+                        <div className="shrink-0 flex items-center gap-3 mb-3">
+                            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+                            <span className="text-[10px] font-black text-gray-300 uppercase tracking-[0.16em]">
+                                {conversionData.length} Leads
+                            </span>
+                            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+                        </div>
+
+                        {/* ── Lead Cards (flex-1 + overflow-y-auto = fills remaining space, then scrolls) ── */}
+                        <div
+                            className="flex-1 overflow-y-auto flex flex-col gap-2.5 min-h-0 pr-0.5
+          [&::-webkit-scrollbar]:w-[3px]
+          [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb]:bg-[var(--color-primary)]/25"
                         >
-                            Convert
-                        </button>
+                            {conversionData.map((item, index) => (
+                                <div
+                                    key={item.data.id}
+                                    className="group relative shrink-0 bg-gray-50/80 hover:bg-white border border-gray-100 hover:border-[var(--color-primary)]/25 rounded-xl p-4 transition-all duration-200 hover:shadow-sm"
+                                >
+                                    {/* ── Top Row: Avatar + Info + Input ── */}
+                                    <div className="flex items-center gap-3">
+
+                                        {/* Index + Avatar */}
+                                        <div className="shrink-0 relative">
+                                            <div className="size-10 rounded-full bg-[var(--color-primary)]/10 group-hover:bg-[var(--color-primary)]/15 text-[var(--color-primary)] flex items-center justify-center font-black text-sm uppercase transition-colors duration-200 ring-2 ring-white">
+                                                {item.data.author?.charAt(0) ?? "?"}
+                                            </div>
+                                            <div className="absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-white border border-gray-100 flex items-center justify-center">
+                                                <span className="text-[8px] font-black text-gray-400 leading-none">{index + 1}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Name + Title */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-bold text-gray-800 truncate leading-tight">{item.data.author}</div>
+                                            <div className="text-[11px] text-gray-400 truncate mt-0.5 leading-tight font-medium">{item.data.title}</div>
+                                        </div>
+
+                                        {/* Phone Input */}
+                                        <div className="shrink-0 w-44 relative group/input">
+                                            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-gray-300 group-focus-within/input:text-[var(--color-primary)] transition-colors pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                            </svg>
+                                            <input
+                                                type="text"
+                                                placeholder="Contact number"
+                                                value={item.ContactNumber}
+                                                onChange={(e) => handleNumberChange(index, e.target.value)}
+                                                className="w-full h-8 pl-7 pr-7 text-xs bg-white border border-gray-200 rounded-lg outline-none
+                    placeholder:text-gray-300 text-gray-700 font-medium
+                    focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/10 transition-all duration-150"
+                                            />
+                                            {item.ContactNumber && (
+                                                <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3 text-emerald-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* ── Expandable Content ── */}
+                                    {item.data.content && (
+                                        <details className="group/det mt-3">
+                                            <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer select-none">
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="flex-1 h-px bg-gray-100 group-open/det:bg-[var(--color-primary)]/15 transition-colors" />
+                                                    <div className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-200 group-open/det:border-[var(--color-primary)]/30 group-open/det:bg-[var(--color-primary)]/5 transition-all duration-200">
+                                                        <svg className="size-3 text-gray-400 group-open/det:text-[var(--color-primary)] transition-all duration-200 group-open/det:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                        <span className="text-[10px] font-bold text-gray-400 group-open/det:text-[var(--color-primary)] transition-colors leading-none">
+                                                            <span className="group-open/det:hidden">View content</span>
+                                                            <span className="hidden group-open/det:inline">Hide content</span>
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex-1 h-px bg-gray-100 group-open/det:bg-[var(--color-primary)]/15 transition-colors" />
+                                                </div>
+                                            </summary>
+                                            <div className="grid grid-rows-[0fr] group-open/det:grid-rows-[1fr] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
+                                                <div className="overflow-hidden">
+                                                    <div className="pt-3">
+                                                        <div className="relative bg-white rounded-xl border border-gray-100 px-4 py-3 group-open/det:border-[var(--color-primary)]/15 transition-colors">
+                                                            <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-[var(--color-primary)]/30 ml-1.5" />
+                                                            <p className="pl-3 text-xs text-gray-500 leading-[1.8]">{item.data.content}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </details>
+                                    )}
+                                </div>
+                            ))}
+
+                            {/* Bottom breathing room inside scroll area */}
+                            <div className="shrink-0 h-1" />
+                        </div>
                     </div>
+
+                    {/* ── Footer (shrink-0 — always pinned at bottom) ── */}
+                    {/* ── Footer (shrink-0 — always pinned at bottom) ── */}
+                    <div className="shrink-0 flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
+                        <p className="text-xs text-gray-400 font-medium">All contact fields required to convert</p>
+                        <div className="flex gap-2">
+
+                            <button
+                                onClick={() => setIsPopupOpen(false)}
+                                disabled={isConverting}
+                                className="px-5 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 text-gray-500
+        hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed
+        transition-all duration-150"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                onClick={handleFinalConvert}
+                                disabled={isConverting}
+                                className="relative px-6 py-2.5 text-sm font-bold rounded-xl bg-[var(--color-primary)] text-white
+        overflow-hidden min-w-[130px]
+        before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none
+        shadow-[0_4px_16px_color-mix(in_srgb,var(--color-primary)_40%,transparent)]
+        hover:not-disabled:shadow-[0_6px_24px_color-mix(in_srgb,var(--color-primary)_50%,transparent)]
+        hover:not-disabled:-translate-y-px active:not-disabled:translate-y-0 active:not-disabled:scale-[0.98]
+        disabled:opacity-80 disabled:cursor-not-allowed disabled:shadow-none
+        transition-all duration-150"
+                            >
+                                <span className="relative flex items-center justify-center gap-2">
+
+                                    {isConverting ? (
+                                        <>
+                                            {/* Spinner */}
+                                            <svg
+                                                className="size-3.5 animate-spin"
+                                                fill="none" viewBox="0 0 24 24"
+                                            >
+                                                <circle
+                                                    className="opacity-25"
+                                                    cx="12" cy="12" r="10"
+                                                    stroke="currentColor" strokeWidth="4"
+                                                />
+                                                <path
+                                                    className="opacity-90"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                                                />
+                                            </svg>
+                                            Converting…
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Bolt icon */}
+                                            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            Convert ({conversionData.length})
+                                        </>
+                                    )}
+
+                                </span>
+                            </button>
+
+                        </div>
+                    </div>
+
                 </div>
             </PopupMenu>
 
