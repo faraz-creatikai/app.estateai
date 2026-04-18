@@ -195,7 +195,7 @@ const TYPE_COLORS: Record<string, string> = {
         "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950 dark:text-sky-300 dark:border-sky-800",
     Mining:
         "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-950 dark:text-fuchsia-300 dark:border-fuchsia-800",
-    Success:
+    Analytics:
         "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800",
 };
 
@@ -206,7 +206,7 @@ const TYPE_ICON: Record<string, string | ReactElement> = {
     Calling: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-6_mky5rb.png" alt="Qualification" className=" object-contain w-10 h-10" />,
     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
      Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Mining" className=" object-contain w-10 h-10" />,
-    Success: "🌟",
+    Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
 };
 
 const ALL_TYPES = ["All", "Matching", "Followup", "Qualification", "Marketing", "Recommendation", "Mining", /* "Success" */];

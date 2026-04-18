@@ -28,7 +28,7 @@ const ICONS = [Bot, Sparkles, Zap, Bot, Sparkles];
 
 const TYPE_ICON: Record<string, any> = {
     Outreach: <Sparkles />,
-    Analytics: <Zap />,
+     Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     Research: <img src="/icons/research.png" alt="Research" />,
     Automation: <img src="/icons/automation.png" alt="Automation" />,
@@ -48,6 +48,7 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
     Calling: { bg: "bg-violet-50", text: "text-violet-700" },
     Recommendation: { bg: "bg-sky-50", text: "text-sky-700" },
     Mining: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
+    Analytics: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
     _default: { bg: "bg-gray-50", text: "text-gray-600" },
 };
 

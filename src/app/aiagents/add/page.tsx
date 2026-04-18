@@ -25,7 +25,7 @@ interface FieldError {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const AGENT_TYPES = ["Matching","Followup", "Qualification", "Calling", "Recommendation", "Mining", "Success"];
+const AGENT_TYPES = ["Matching","Followup", "Qualification", "Calling", "Recommendation", "Mining", "Analytics"];
 
 const SUB_TYPES: Record<string, string[]> = {
     Qualification: ["Lead Scoring", "Pipeline Analytics", "Meeting Scheduler", "Proposal Generator", "Deal Tracking"],
@@ -36,6 +36,7 @@ const SUB_TYPES: Record<string, string[]> = {
     Operations: ["Data Enrichment", "Report Generator", "Workflow Automation", "Integration Manager", "Audit Logger"],
     Success: ["Onboarding", "Churn Prediction", "Health Scoring", "Renewal Manager", "Upsell Detector"],
     Mining: ["Customer Segmentation", "Churn Analysis", "Sales Forecasting", "Behavioral Analytics", "Risk Assessment"],
+    Analytics: ["Customer Segmentation", "Churn Analysis", "Sales Forecasting", "Behavioral Analytics", "Risk Assessment"],
 };
 
 const CUSTOMER_TYPES = ["All", "SMB", "Mid-Market", "Enterprise", "Startup"];
@@ -57,7 +58,7 @@ const TYPE_ICON: Record<string, string | ReactElement> = {
     Calling: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-6_mky5rb.png" alt="Calling" className=" object-contain w-10 h-10" />,
     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Mining" className=" object-contain w-10 h-10" />,
-    Success: "🌟",
+    Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
 };
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string; ring: string }> = {
@@ -67,7 +68,7 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string; ri
     Calling: { bg: "bg-violet-50 dark:bg-violet-950", text: "text-violet-700 dark:text-violet-300", border: "border-violet-200 dark:border-violet-800", ring: "ring-violet-300 dark:ring-violet-700" },
     Recommendation: { bg: "bg-sky-50 dark:bg-sky-950", text: "text-sky-700 dark:text-sky-300", border: "border-sky-200 dark:border-sky-800", ring: "ring-sky-300 dark:ring-sky-700" },
     Mining: { bg: "bg-amber-50 dark:bg-amber-950", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800", ring: "ring-amber-300 dark:ring-amber-700" },
-    Success: { bg: "bg-rose-50 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-800", ring: "ring-rose-300 dark:ring-rose-700" },
+    Analytics: { bg: "bg-rose-50 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-800", ring: "ring-rose-300 dark:ring-rose-700" },
 };
 
 // ─── Reusable field wrapper ───────────────────────────────────────────────────

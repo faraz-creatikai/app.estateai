@@ -81,7 +81,9 @@ import QualificationAgentWorkspace from "../component/aiagents/QualificationAgen
 import CallingAgentWorkspace from "../component/aiagents/CallingAgentWorkspace";
 import RecommendAgentWorkspace from "../component/aiagents/RecommendAgentWorkspace";
 import AIAgentSidebar from "../component/aiagents/AIAgentSidebar";
-import DataMiningAgentWorkspace from "../component/aiagents/DataMiningAgentWorkspace";
+import DataMiningAgentWorkspace from "../component/aiagents/AnalyticsAgentWorkspace";
+import AnalyticsAgentWorkspace from "../component/aiagents/AnalyticsAgentWorkspace";
+import SocialMiningAgentWorkspace from "../component/aiagents/MiningAgentWorkspace";
 
 
 interface DeleteAllDialogDataInterface { }
@@ -1740,7 +1742,7 @@ export default function Customer() {
 
   const AGENTS_TYPE_ICON: Record<string, any> = {
     Outreach: <Sparkles />,
-    Analytics: <Zap />,
+    Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
     Calling: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-6_mky5rb.png" alt="Calling" className=" object-contain w-10 h-10" />,
     Research: <img src="/icons/research.png" alt="Research" />,
     Automation: <img src="/icons/automation.png" alt="Automation" />,
@@ -2692,290 +2694,321 @@ export default function Customer() {
           </div>
 
           <BottomPopup onClose={() => setIsAIAgentDialogOpen(false)} isOpen={isAIAgentsDialogOpen}>
+            {({ isMaximized, toggleMaximize }) => (
+              <div className={` flex flex-row relative overflow-hidden ${isMaximized ? "" : "rounded-t-2xl"}  h-[100%] w-full `} style={{ background: "#ffffff" }}>
 
-            {/* ── Root: two-column layout (dark left rail + white workspace) ── */}
-            <div className="flex flex-row relative overflow-hidden rounded-t-2xl h-[100%] w-full" style={{ background: "#ffffff" }}>
-
-              {/* ════════════════════════════════════════════
-                     LEFT DARK SIDEBAR
- ════════════════════════════════════════════ */}
-              <AIAgentSidebar
-                selectedAgent={selectedAgent}
-                AGENTS_TYPE_ICON={AGENTS_TYPE_ICON}
-                onClose={() => setIsAIAgentDialogOpen(false)}
-              />
+                {/* LEFT DARK SIDEBAR */}
+                {
+                  !isMaximized && <AIAgentSidebar
+                    selectedAgent={selectedAgent}
+                    AGENTS_TYPE_ICON={AGENTS_TYPE_ICON}
+                    onClose={() => setIsAIAgentDialogOpen(false)}
+                  />
+                }
 
 
-              {/* ════════════════════════════════════════════
-        RIGHT WORKSPACE
-    ════════════════════════════════════════════ */}
-              <div className="flex-1 flex flex-col pb-5 w-full overflow-hidden bg-white">
+                {/* RIGHT WORKSPACE */}
+                <div className="flex-1 flex flex-col pb-5 w-full overflow-hidden bg-white">
 
-                {/* ── Top strip: workspace label + live status + close ── */}
-                <div
-                  className="flex items-center justify-between relative px-5 flex-shrink-0 border-b"
-                  style={{ height: "44px", background: "#f8fafc", borderColor: "#e2e8f0" }}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
-                      Workspace
-                    </span>
-                    <div className="w-px h-3.5" style={{ background: "#e2e8f0" }} />
-                    {/* Live badge */}
-                    <div
-                      className="flex items-center gap-1.5 px-2 py-0.5 rounded-full"
-                      style={{
-                        background: aiLoading ? "rgba(56,189,248,0.1)" : "rgba(16,185,129,0.08)",
-                        border: `1px solid ${aiLoading ? "rgba(56,189,248,0.25)" : "rgba(16,185,129,0.2)"}`,
-                      }}
-                    >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{
-                          background: aiLoading ? "#38bdf8" : "#10b981",
-                          animation: aiLoading ? "pulse 1s infinite" : "none",
-                        }}
-                      />
-                      <span
-                        className="text-[9px] font-mono font-medium flex items-center gap-1"
-                        style={{ color: aiLoading ? "#0ea5e9" : "#10b981" }}
-                      >
-                        {currentStep || "Ready"}
-                        {aiLoading && <BeatLoader size={2} color="#0ea5e9" />}
+                  {/* ── Top strip ── */}
+                  <div
+                    className="flex items-center justify-between relative px-5 flex-shrink-0 border-b"
+                    style={{ height: "44px", background: "#f8fafc", borderColor: "#e2e8f0" }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
+                        Workspace
                       </span>
+                      <div className="w-px h-3.5" style={{ background: "#e2e8f0" }} />
+                      {/* Live badge */}
+                      <div
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded-full"
+                        style={{
+                          background: aiLoading ? "rgba(56,189,248,0.1)" : "rgba(16,185,129,0.08)",
+                          border: `1px solid ${aiLoading ? "rgba(56,189,248,0.25)" : "rgba(16,185,129,0.2)"}`,
+                        }}
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{
+                            background: aiLoading ? "#38bdf8" : "#10b981",
+                            animation: aiLoading ? "pulse 1s infinite" : "none",
+                          }}
+                        />
+                        <span
+                          className="text-[9px] font-mono font-medium flex items-center gap-1"
+                          style={{ color: aiLoading ? "#0ea5e9" : "#10b981" }}
+                        >
+                          {currentStep || "Ready"}
+                          {aiLoading && <BeatLoader size={2} color="#0ea5e9" />}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action buttons: maximize + close */}
+                    <div className="flex items-center gap-1 absolute top-2 right-2 z-50">
+
+                      {/* Maximize / Minimize button */}
+                      <button
+                        onClick={toggleMaximize}
+                        title={isMaximized ? "Minimize" : "Maximize"}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-transparent text-[#94a3b8] hover:bg-[#e0f2fe] hover:text-[#0284c7] transition-all cursor-pointer"
+                      >
+                        {isMaximized ? (
+                          /* Minimize icon — two inward arrows */
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="4 14 10 14 10 20" />
+                            <polyline points="20 10 14 10 14 4" />
+                            <line x1="10" y1="14" x2="3" y2="21" />
+                            <line x1="21" y1="3" x2="14" y2="10" />
+                          </svg>
+                        ) : (
+                          /* Maximize icon — two outward arrows */
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="15 3 21 3 21 9" />
+                            <polyline points="9 21 3 21 3 15" />
+                            <line x1="21" y1="3" x2="14" y2="10" />
+                            <line x1="3" y1="21" x2="10" y2="14" />
+                          </svg>
+                        )}
+                      </button>
+
+                      {/* Close button */}
+                      <button
+                        onClick={() => setIsAIAgentDialogOpen(false)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-transparent text-[#94a3b8] hover:bg-[#fee2e2] hover:text-[#ef4444] transition-all cursor-pointer"
+                      >
+                        <IoMdClose size={18} />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Close button */}
-                  <button
-                    onClick={() => setIsAIAgentDialogOpen(false)}
-                    className="w-7 h-7 absolute top-2 right-2 z-50 flex items-center justify-center rounded-lg bg-transparent text-[#94a3b8] hover:bg-[#fee2e2] hover:text-[#ef4444] transition-all cursor-pointer"
-                    style={{ color: "#94a3b8" }}
-                  >
-                    <IoMdClose size={18} />
-                  </button>
-                </div>
+                  {/* ── MATCHING AGENT ── */}
+                  {selectedAgent && selectedAgent.type === "Matching" ? (
+                    <div className="flex flex-col overflow-hidden flex-1">
 
-                {/* ── MATCHING AGENT ── */}
-                {selectedAgent && selectedAgent.type === "Matching" ? (
-                  <div className="flex flex-col overflow-hidden flex-1">
+                      {/* Chat messages — your existing AIChatMessages component, restyled */}
+                      <AIChatMessages
+                        agentName={selectedAgent.name}
+                        messages={messages}
+                        aiLoading={aiLoading}
+                        currentStep={currentStep}
+                        hints={[
+                          "High-value leads in Mumbai",
+                          "Active last 30 days",
+                          "Enterprise, no contact",
+                        ]}
+                        onHintClick={(hint) => setKeywordInput(hint)}
+                        maxHeight="100%"
+                      />
 
-                    {/* Chat messages — your existing AIChatMessages component, restyled */}
-                    <AIChatMessages
-                      agentName={selectedAgent.name}
-                      messages={messages}
-                      aiLoading={aiLoading}
-                      currentStep={currentStep}
-                      hints={[
-                        "High-value leads in Mumbai",
-                        "Active last 30 days",
-                        "Enterprise, no contact",
-                      ]}
-                      onHintClick={(hint) => setKeywordInput(hint)}
-                      maxHeight="100%"
-                    />
-
-                    {/* ── INPUT AREA ── */}
-                    <div
-                      className="flex-shrink-0 border-t px-4  pt-3"
-                      style={{ borderColor: "#e2e8f0", background: "#ffffff" }}
-                    >
-                      {/* Collapsible fields panel */}
+                      {/* ── INPUT AREA ── */}
                       <div
-                        className="overflow-hidden transition-all duration-300"
-                        style={{
-                          maxHeight: toggleAiGenieSearchBy ? "160px" : "0",
-                          opacity: toggleAiGenieSearchBy ? 1 : 0,
-                          marginBottom: toggleAiGenieSearchBy ? "10px" : "0",
-                        }}
+                        className="flex-shrink-0 border-t px-4  pt-3"
+                        style={{ borderColor: "#e2e8f0", background: "#ffffff" }}
                       >
+                        {/* Collapsible fields panel */}
                         <div
-                          className="rounded-[14px] p-3 border"
-                          style={{ background: "#f8fafc", borderColor: "#e2e8f0" }}
+                          className="overflow-hidden transition-all duration-300"
+                          style={{
+                            maxHeight: toggleAiGenieSearchBy ? "160px" : "0",
+                            opacity: toggleAiGenieSearchBy ? 1 : 0,
+                            marginBottom: toggleAiGenieSearchBy ? "10px" : "0",
+                          }}
                         >
-                          <p className="text-[9px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>
-                            Search in fields
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {SEARCH_FIELDS.filter(f => !filters.SearchIn.includes(f)).map((field) => (
-                              <button
-                                key={field}
-                                type="button"
-                                onClick={() => setFilters(prev => ({ ...prev, SearchIn: [...prev.SearchIn, field] }))}
-                                className="text-[10.5px] font-medium px-2 py-1 rounded-lg border transition-all"
-                                style={{ borderColor: "#e2e8f0", background: "#ffffff", color: "#64748b" }}
-                              >
-                                {field.toLowerCase()}
-                              </button>
-                            ))}
-                          </div>
-                          {filters.SearchIn.length > 0 && (
-                            <div className="mt-2 pt-2 border-t" style={{ borderColor: "#e2e8f0" }}>
-                              <p className="text-[9px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "#94a3b8" }}>
-                                Active
-                              </p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {filters.SearchIn.map((field) => (
-                                  <div
-                                    key={field}
-                                    className="flex items-center gap-1 text-[10.5px] font-medium px-2 py-1 rounded-lg"
-                                    style={{ background: "#e0f2fe", color: "#0284c7", border: "1px solid #bae6fd" }}
-                                  >
-                                    {field.toLowerCase()}
-                                    <button
-                                      type="button"
-                                      onClick={() => setFilters(prev => ({ ...prev, SearchIn: prev.SearchIn.filter(f => f !== field) }))}
-                                      className="leading-none ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
+                          <div
+                            className="rounded-[14px] p-3 border"
+                            style={{ background: "#f8fafc", borderColor: "#e2e8f0" }}
+                          >
+                            <p className="text-[9px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>
+                              Search in fields
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {SEARCH_FIELDS.filter(f => !filters.SearchIn.includes(f)).map((field) => (
+                                <button
+                                  key={field}
+                                  type="button"
+                                  onClick={() => setFilters(prev => ({ ...prev, SearchIn: [...prev.SearchIn, field] }))}
+                                  className="text-[10.5px] font-medium px-2 py-1 rounded-lg border transition-all"
+                                  style={{ borderColor: "#e2e8f0", background: "#ffffff", color: "#64748b" }}
+                                >
+                                  {field.toLowerCase()}
+                                </button>
+                              ))}
                             </div>
-                          )}
+                            {filters.SearchIn.length > 0 && (
+                              <div className="mt-2 pt-2 border-t" style={{ borderColor: "#e2e8f0" }}>
+                                <p className="text-[9px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "#94a3b8" }}>
+                                  Active
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {filters.SearchIn.map((field) => (
+                                    <div
+                                      key={field}
+                                      className="flex items-center gap-1 text-[10.5px] font-medium px-2 py-1 rounded-lg"
+                                      style={{ background: "#e0f2fe", color: "#0284c7", border: "1px solid #bae6fd" }}
+                                    >
+                                      {field.toLowerCase()}
+                                      <button
+                                        type="button"
+                                        onClick={() => setFilters(prev => ({ ...prev, SearchIn: prev.SearchIn.filter(f => f !== field) }))}
+                                        className="leading-none ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Textarea + send */}
-                      <div
-                        className={`flex items-end gap-2 rounded-2xl px-3.5 pt-2.5 pb-2 transition-all duration-200 border-[1.5px] ${aiLoading
-                          ? "border-sky-200"
-                          : "border-slate-200 focus-within:border-sky-300 focus-within:shadow-[0_0_0_3px_rgba(125,211,252,0.12)]"
-                          }`}
-                        style={{ background: "#ffffff" }}
-                      >
-                        <div className="flex-1">
-                          <textarea
-                            rows={2}
-                            placeholder="Describe the leads you're looking for…"
-                            className="w-full resize-none bg-transparent outline-none leading-relaxed disabled:opacity-40"
-                            style={{ fontSize: "12.5px", color: "#0f172a" }}
-                            value={keywordInput}
-                            disabled={aiLoading}
-                            onChange={(e) => setKeywordInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                if (keywordInput.trim() && !aiLoading) {
-                                  setAiLoading(true);
-                                  setCurrentStep(STEPS.SEARCH);
-                                  handleSend();
+                        {/* Textarea + send */}
+                        <div
+                          className={`flex items-end gap-2 rounded-2xl px-3.5 pt-2.5 pb-2 transition-all duration-200 border-[1.5px] ${aiLoading
+                            ? "border-sky-200"
+                            : "border-slate-200 focus-within:border-sky-300 focus-within:shadow-[0_0_0_3px_rgba(125,211,252,0.12)]"
+                            }`}
+                          style={{ background: "#ffffff" }}
+                        >
+                          <div className="flex-1">
+                            <textarea
+                              rows={2}
+                              placeholder="Describe the leads you're looking for…"
+                              className="w-full resize-none bg-transparent outline-none leading-relaxed disabled:opacity-40"
+                              style={{ fontSize: "12.5px", color: "#0f172a" }}
+                              value={keywordInput}
+                              disabled={aiLoading}
+                              onChange={(e) => setKeywordInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  if (keywordInput.trim() && !aiLoading) {
+                                    setAiLoading(true);
+                                    setCurrentStep(STEPS.SEARCH);
+                                    handleSend();
+                                  }
                                 }
+                              }}
+                            />
+                            <div className="flex items-center justify-between mt-1 pt-1.5 border-t" style={{ borderColor: "#f1f5f9" }}>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={aiLoading}
+                                  onClick={() => setToggleAiGenieSearchBy(!toggleAiGenieSearchBy)}
+                                  className="flex items-center gap-1 text-[10px] font-medium transition-colors disabled:opacity-40"
+                                  style={{ color: "#94a3b8" }}
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M7 8h10M11 12h4" />
+                                  </svg>
+                                  Fields {toggleAiGenieSearchBy ? "▴" : "▾"}
+                                  {filters.SearchIn.length > 0 && (
+                                    <span
+                                      className="ml-1 rounded-full px-1.5 text-[8.5px] font-bold"
+                                      style={{ background: "#e0f2fe", color: "#0284c7" }}
+                                    >
+                                      {filters.SearchIn.length}
+                                    </span>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={clearFilter}
+                                  disabled={aiLoading}
+                                  className="text-[10px] transition-colors disabled:opacity-40 hover:text-rose-500"
+                                  style={{ color: "#94a3b8" }}
+                                >
+                                  Clear
+                                </button>
+                              </div>
+                              <span className="text-[9.5px] font-mono" style={{ color: "#cbd5e1" }}>↵ to send</span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={aiLoading || !keywordInput.trim()}
+                            onClick={() => {
+                              if (keywordInput.trim() && !aiLoading) {
+                                setAiLoading(true);
+                                setCurrentStep(STEPS.SEARCH);
+                                handleSend();
                               }
                             }}
-                          />
-                          <div className="flex items-center justify-between mt-1 pt-1.5 border-t" style={{ borderColor: "#f1f5f9" }}>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                disabled={aiLoading}
-                                onClick={() => setToggleAiGenieSearchBy(!toggleAiGenieSearchBy)}
-                                className="flex items-center gap-1 text-[10px] font-medium transition-colors disabled:opacity-40"
-                                style={{ color: "#94a3b8" }}
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M7 8h10M11 12h4" />
-                                </svg>
-                                Fields {toggleAiGenieSearchBy ? "▴" : "▾"}
-                                {filters.SearchIn.length > 0 && (
-                                  <span
-                                    className="ml-1 rounded-full px-1.5 text-[8.5px] font-bold"
-                                    style={{ background: "#e0f2fe", color: "#0284c7" }}
-                                  >
-                                    {filters.SearchIn.length}
-                                  </span>
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={clearFilter}
-                                disabled={aiLoading}
-                                className="text-[10px] transition-colors disabled:opacity-40 hover:text-rose-500"
-                                style={{ color: "#94a3b8" }}
-                              >
-                                Clear
-                              </button>
-                            </div>
-                            <span className="text-[9.5px] font-mono" style={{ color: "#cbd5e1" }}>↵ to send</span>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          disabled={aiLoading || !keywordInput.trim()}
-                          onClick={() => {
-                            if (keywordInput.trim() && !aiLoading) {
-                              setAiLoading(true);
-                              setCurrentStep(STEPS.SEARCH);
-                              handleSend();
+                            className="w-9 h-9 mb-1 rounded-[11px] flex items-center justify-center text-white transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0 active:scale-95 hover:brightness-110"
+                            style={{ background: "#0284c7", boxShadow: "0 2px 8px rgba(2,132,199,0.3)" }}
+                          >
+                            {aiLoading
+                              ? <BounceLoader loading color="#fff" size={10} />
+                              : <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                              </svg>
                             }
-                          }}
-                          className="w-9 h-9 mb-1 rounded-[11px] flex items-center justify-center text-white transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0 active:scale-95 hover:brightness-110"
-                          style={{ background: "#0284c7", boxShadow: "0 2px 8px rgba(2,132,199,0.3)" }}
-                        >
-                          {aiLoading
-                            ? <BounceLoader loading color="#fff" size={10} />
-                            : <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
-                              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                            </svg>
-                          }
-                        </button>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  /* ── FOLLOWUP AGENT ── */
-                ) : selectedAgent && selectedAgent.type === "Followup" ? (
-                  <div className="flex-1 overflow-y-auto px-6 py-4">
-                    <FollowupAgentWorkspace data={selectedAgent} />
-                  </div>
-
-                  /* ── Qualification STATE ── */
-                ) : selectedAgent && selectedAgent.type === "Qualification" ? (
-                  <div className="flex-1 overflow-hidden px-6 py-4">
-                    <QualificationAgentWorkspace isOpen={isAIAgentsDialogOpen} />
-                  </div>
-
-                  /* ── RECOMMEND CUSTOMER STATE ── */
-                ) : selectedAgent && selectedAgent.type === "Recommendation" ? (
-                  <div className="flex-1 overflow-hidden px-6 py-4">
-                    <RecommendAgentWorkspace isOpen={isAIAgentsDialogOpen} />
-                  </div>
-
-                  /* ── CALLING STATE ── */
-                ) : selectedAgent && selectedAgent.type === "Calling" ? (
-                  <div className="flex-1 overflow-y-auto px-6">
-                    <CallingAgentWorkspace isOpen={isAIAgentsDialogOpen} />
-                  </div>
-                ) : selectedAgent && selectedAgent.type === "Followup" ? (
-                  <div className="flex-1 overflow-y-auto px-6 py-4">
-                    <FollowupAgentWorkspace data={selectedAgent} />
-                  </div>
-
-                  /* ── Data Mining STATE ── */
-                ): selectedAgent && selectedAgent.type === "Mining" ? (
-                  <div className="flex-1 overflow-hidden px-6 py-4">
-                    <DataMiningAgentWorkspace isOpen={isAIAgentsDialogOpen} />
-                  </div>
-
-                  /* ── Error STATE ── */
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center py-16 text-center px-6">
-                    <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-                      style={{ background: "#fff1f2" }}
-                    >
-                      <span className="text-xl" style={{ color: "#f43f5e" }}>!</span>
+                    /* ── FOLLOWUP AGENT ── */
+                  ) : selectedAgent && selectedAgent.type === "Followup" ? (
+                    <div className="flex-1 overflow-y-auto px-6 py-4">
+                      <FollowupAgentWorkspace data={selectedAgent} />
                     </div>
-                    <p className="text-[14px] font-semibold" style={{ color: "#334155" }}>Something went wrong</p>
-                    <p className="text-[12px] mt-1" style={{ color: "#94a3b8" }}>Please try again later</p>
-                  </div>
-                )}
 
-              </div>{/* end right panel */}
-            </div>{/* end two-column root */}
+                    /* ── Qualification STATE ── */
+                  ) : selectedAgent && selectedAgent.type === "Qualification" ? (
+                    <div className="flex-1 overflow-hidden px-6 py-4">
+                      <QualificationAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                    </div>
 
+                    /* ── RECOMMEND CUSTOMER STATE ── */
+                  ) : selectedAgent && selectedAgent.type === "Recommendation" ? (
+                    <div className="flex-1 overflow-hidden px-6 py-4">
+                      <RecommendAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                    </div>
+
+                    /* ── CALLING STATE ── */
+                  ) : selectedAgent && selectedAgent.type === "Calling" ? (
+                    <div className="flex-1 overflow-y-auto px-6">
+                      <CallingAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                    </div>
+                  ) : selectedAgent && selectedAgent.type === "Followup" ? (
+                    <div className="flex-1 overflow-y-auto px-6 py-4">
+                      <FollowupAgentWorkspace data={selectedAgent} />
+                    </div>
+
+                    /* ── Data Mining STATE ── */
+                  ) : selectedAgent && selectedAgent.type === "Mining" ? (
+                    <div className="flex-1 overflow-hidden ">
+                      <SocialMiningAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                    </div>
+
+                    /* ── Error STATE ── */
+                  ) : selectedAgent && selectedAgent.type === "Analytics" ? (
+                    <div className="flex-1 overflow-hidden px-6 py-4">
+                      <AnalyticsAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                    </div>
+
+                    /* ── Error STATE ── */
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center py-16 text-center px-6">
+                      <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+                        style={{ background: "#fff1f2" }}
+                      >
+                        <span className="text-xl" style={{ color: "#f43f5e" }}>!</span>
+                      </div>
+                      <p className="text-[14px] font-semibold" style={{ color: "#334155" }}>Something went wrong</p>
+                      <p className="text-[12px] mt-1" style={{ color: "#94a3b8" }}>Please try again later</p>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            )}
           </BottomPopup>
 
           {/* TABLE */}

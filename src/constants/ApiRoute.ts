@@ -99,6 +99,27 @@ export const API_ROUTES = {
     DELETE: (id: string) => `${BASE_URL}/aiagent/${id}`,
     ASSIGNAIAGENT: `${BASE_URL}/aiagent/assign`,
   },
+  SOCIALCONTENT: {
+    REDDIT: {
+      GET_BY_QUERY: (query: string) => `${BASE_URL}/social-content/reddit/${query}`,
+    },
+    FACEBOOK: {
+      GET_ALL_POST: `${BASE_URL}/social-content/facebook`,
+      GET_BY_QUERY: (query: string) => `${BASE_URL}/social-content/facebook/${query}`,
+      SCRAPP_NEW_POSTS: `${BASE_URL}/social-content/facebook/scrap-new`
+    },
+    INSTAGRAM: {
+      GET_ALL_POST: `${BASE_URL}/social-content/instagram`,
+      GET_BY_QUERY: (query: string) => `${BASE_URL}/social-content/instagram/${query}`,
+      SCRAPP_NEW_POSTS: `${BASE_URL}/social-content/instagram/scrap-new`
+    },
+    MINEDLEAD: {
+      SAVE: `${BASE_URL}/social-content/minedlead/save`,
+      GET: `${BASE_URL}/social-content/minedlead/get`,
+      GET_BY_QUERY: (params: string) => `${BASE_URL}/social-content/minedlead/get?${params}`,
+      CONVERT:`${BASE_URL}/social-content/minedlead/convert`,
+    }
+  },
   MASTERS: {
     CAMPAIGN: {
       GET_ALL: `${BASE_URL}/mas/cam`,

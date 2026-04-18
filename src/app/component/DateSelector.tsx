@@ -15,10 +15,9 @@ dayjs.extend(customParseFormat);
 const parseDate = (str: string) => {
   if (!str) return null;
 
-  let d = dayjs(str);
-  if (d.isValid()) return d;
+  // ✅ Strict parsing ONLY in DD-MM-YYYY
+  const d = dayjs(str, "DD-MM-YYYY", true);
 
-  d = dayjs(str, "DD-MM-YYYY");
   return d.isValid() ? d : null;
 };
 

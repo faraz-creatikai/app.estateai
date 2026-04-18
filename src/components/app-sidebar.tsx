@@ -18,6 +18,7 @@ import {
   ShieldUser,
   Settings,
   UsersIcon,
+  ExternalLink,
 } from "lucide-react";
 
 import { NavMain } from "../components/nav-main";
@@ -60,6 +61,11 @@ const data = {
       title: "Contact Follow Up",
       url: "/followups/contact",
       icon: PlusSquare,
+    },
+    {
+      title: "External Leads",
+      url: "/minedlead",
+      icon: ExternalLink,
     },
         {
       title: "Clients",

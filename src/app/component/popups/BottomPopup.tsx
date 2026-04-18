@@ -1,8 +1,13 @@
 'use client';
-import React, { MouseEvent, ReactNode, useEffect } from 'react';
+import React, { MouseEvent, ReactNode, useEffect, useState } from 'react';
+
+interface PopupRenderProps {
+  isMaximized: boolean;
+  toggleMaximize: () => void;
+}
 
 interface PopupMenuProps {
-  children: ReactNode;
+  children: ReactNode | ((props: PopupRenderProps) => ReactNode);
   onClose?: () => void;
   isOpen?: boolean;
 }
@@ -12,11 +17,34 @@ const BottomPopup: React.FC<PopupMenuProps> = ({
   onClose,
   isOpen = false,
 }) => {
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  const toggleMaximize = () => setIsMaximized((prev) => !prev);
+
+  // Reset maximized state when popup closes
+  useEffect(() => {
+    if (!isOpen) setIsMaximized(false);
+    const html = document.documentElement;
+    const body = document.body;
+
+    if (isOpen) {
+      html.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+    } else {
+      html.style.overflow = '';
+      body.style.overflow = '';
+    }
+
+    return () => {
+      html.style.overflow = '';
+      body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   const handleBackdropClick = (e: MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose?.();
   };
 
-  // Escape close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose?.();
@@ -27,9 +55,8 @@ const BottomPopup: React.FC<PopupMenuProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 flex flex-col items-center justify-center py-2 px-1 transition-all duration-300 ${
-        isOpen ? 'visible' : 'invisible'
-      }`}
+      className={`fixed inset-0 flex flex-col items-center justify-center transition-all duration-300 ${isMaximized ? 'p-0' : 'py-2 px-1'
+        } ${isOpen ? 'visible' : 'invisible'}`}
       style={{
         zIndex: 9999,
         height: '100dvh',
@@ -41,13 +68,16 @@ const BottomPopup: React.FC<PopupMenuProps> = ({
     >
       {/* POPUP */}
       <div
-        className={`relative bg-white shadow-2xl h-full rounded-xl w-full max-w-[1210px] mx-1 transition-transform duration-300 ease-out ${
-          isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
-        }`}
-      
+        className={`relative bg-white shadow-2xl transition-all duration-300 ease-out ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+          } ${isMaximized
+            ? 'w-full h-full max-w-none rounded-none'
+            : 'h-full rounded-xl w-full max-w-[1210px] mx-1'
+          }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {children}
+        {typeof children === 'function'
+          ? children({ isMaximized, toggleMaximize })
+          : children}
       </div>
     </div>
   );
