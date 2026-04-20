@@ -3,13 +3,14 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Admin, LoginCredentials } from "@/store/auth.interface";
-import { checkAuthAdmin, loginAdmin, logoutAdmin } from "@/store/auth";
+import { checkAuthAdmin, loginAdmin, loginDev, logoutAdmin } from "@/store/auth";
 import Cookies from "js-cookie";
 
 interface AuthContextType {
   admin: Admin | null;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
+  devlogin: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -21,16 +22,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-     
-  
-        const data = await checkAuthAdmin(); // backend verifies token
-        if (data.success && data.admin) {
-          /* console.log("getting admin,",data.admin) */
-          setAdmin(data.admin);
-        } else {
-          console.log("check problem : ",data)
-        }
-      
+
+
+      const data = await checkAuthAdmin(); // backend verifies token
+      if (data.success && data.admin) {
+        /* console.log("getting admin,",data.admin) */
+        setAdmin(data.admin);
+      } else {
+        console.log("check problem : ", data)
+      }
+
       setIsLoading(false);
     };
     initAuth();
@@ -60,7 +61,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  return <AuthContext.Provider value={{ admin,isLoading, login, logout }}>{children}</AuthContext.Provider>;
+  const devlogin = async (credentials: LoginCredentials) => {
+    const data = await loginDev(credentials);
+    if (data.success && data.adminData) {
+      setAdmin(data.adminData);
+      /* Cookies.set("token", data.token as string, { expires: 7 }); */
+      toast.success(data.message);
+    } else {
+      toast.error(data.message);
+    }
+  };
+
+  return <AuthContext.Provider value={{ admin, isLoading, login, devlogin, logout }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

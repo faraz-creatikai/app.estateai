@@ -50,6 +50,7 @@ export const scrapNewPosts = async (data: any) => {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify(data),
         credentials: "include"
       }
     );
@@ -83,6 +84,7 @@ export const scrapNewInstaPosts = async (data: any) => {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify(data),
         credentials: "include"
       }
     );

@@ -202,26 +202,28 @@ export default function MinedLeads() {
         setPage(1);
     }, [source, debouncedSearch, sortBy, order, limit]);
 
+    const fetchLeads = async () => {
+        setLoading(true);
+        const params = new URLSearchParams({
+            page: String(page),
+            limit: String(limit),
+            sortBy,
+            order,
+        });
+        if (source !== "all") params.set("source", source);
+        if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+
+        const res = await getFilteredMinedLead(params.toString());
+        if (res?.data) {
+            setLeads(res.data);
+            setPagination(res.pagination);
+        }
+        setLoading(false);
+    };
+
     /* ── Fetch ── */
     useEffect(() => {
-        const fetchLeads = async () => {
-            setLoading(true);
-            const params = new URLSearchParams({
-                page: String(page),
-                limit: String(limit),
-                sortBy,
-                order,
-            });
-            if (source !== "all") params.set("source", source);
-            if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
 
-            const res = await getFilteredMinedLead(params.toString());
-            if (res?.data) {
-                setLeads(res.data);
-                setPagination(res.pagination);
-            }
-            setLoading(false);
-        };
         fetchLeads();
     }, [source, debouncedSearch, sortBy, order, limit, page]);
 
@@ -335,6 +337,7 @@ export default function MinedLeads() {
             toast.error("Conversion failed");
         } finally {
             setIsConverting(false);
+             fetchLeads();
         }
     };
 

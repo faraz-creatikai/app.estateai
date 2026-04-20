@@ -21,7 +21,8 @@ export default function AppLayoutClient({ children }: { children: ReactNode }) {
     pathname === "/admin" ||
     pathname === "/register" ||
     pathname === "/enquiry" ||
-    pathname === "/register/client";
+    pathname === "/register/client" ||
+    pathname === "/system/maintenance/access/signup";
 
   if (isAdminPage) {
     return <main className="min-h-screen">{children}</main>;

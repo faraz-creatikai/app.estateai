@@ -6,7 +6,7 @@ export const BASE_URL = "https://appapi.estateai.in/api";
 //https://apiwbh.ibigdata.in
 //https://apiproperty.ibigdata.in
 //https://apitravel.ibigdata.in
-//https://apiairbnb.ibigdata.in
+//https://appapi.estateai.in
 
 export const API_ROUTES = {
   CONTACT: {
@@ -395,6 +395,7 @@ export const API_ROUTES = {
     GET_BY_ID: (id: String) => `${BASE_URL}/admin/${id}`,
     UPDATE_DETAILS: (id: String) => `${BASE_URL}/admin/${id}/details`,
     UPDATE_PASSWORD: (id: String) => `${BASE_URL}/admin/${id}/password`,
+    DEVLOGIN: `${BASE_URL}/admin/mode/dev/login`,
     DELETE: (id: String) => `${BASE_URL}/admin/${id}`,
   },
 

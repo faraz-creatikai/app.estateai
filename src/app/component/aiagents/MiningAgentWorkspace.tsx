@@ -51,12 +51,9 @@ interface SocialInsights {
   opportunities: Opportunity[]
 }
 
-
-
 interface SocialPagination {
   datasetId: string
   count: number
-  // Reddit load-more fields
   after?: string | null
   hasMore?: boolean
 }
@@ -84,6 +81,21 @@ interface ChatMessage {
 type TabKey = 'posts' | 'insights' | 'signals' | 'opps'
 
 /* ═══════════════════════════════════════════════
+   SCRAPER PARAMS (new)
+═══════════════════════════════════════════════ */
+export interface FacebookScraperParams {
+  groupUrls: string[]
+  limit?: number
+}
+
+export interface InstagramScraperParams {
+  hashtags: string[]
+  limit?: number
+}
+
+export type ScraperParams = FacebookScraperParams | InstagramScraperParams | {}
+
+/* ═══════════════════════════════════════════════
    SOURCE REGISTRY
 ═══════════════════════════════════════════════ */
 export interface SourceConfig {
@@ -94,11 +106,10 @@ export interface SourceConfig {
   fetchSteps: readonly string[]
   scanChips: readonly string[]
   suggestedQueries: readonly string[]
-   scrapFn?: (data: any) => Promise<any>
+  scrapFn?: (data: any) => Promise<any>
 }
 
 const SOURCE_REGISTRY: SourceConfig[] = [
-
   {
     id: 'facebook',
     label: 'Facebook',
@@ -116,10 +127,10 @@ const SOURCE_REGISTRY: SourceConfig[] = [
       'Share patterns', 'Comment threads', 'Pages',
       'Intent mining', 'Opportunity score',
     ],
-    suggestedQueries: [], // not used in button mode
+    suggestedQueries: [],
     scrapFn: scrapNewPosts,
   },
-    {
+  {
     id: 'instagram',
     label: 'Instagram',
     color: '#EE2A7B',
@@ -139,7 +150,7 @@ const SOURCE_REGISTRY: SourceConfig[] = [
     suggestedQueries: [],
     scrapFn: scrapNewInstaPosts,
   },
-    {
+  {
     id: 'reddit',
     label: 'Reddit',
     color: '#FF4500',
@@ -239,7 +250,6 @@ const DatabaseIcon = ({ color = 'white', size = 14 }: { color?: string; size?: n
     <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
   </svg>
 )
-
 const CsvIcon = ({ color = '#059669', size = 11 }: { color?: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
@@ -248,12 +258,22 @@ const CsvIcon = ({ color = '#059669', size = 11 }: { color?: string; size?: numb
     <line x1="8" y1="17" x2="16" y2="17" />
   </svg>
 )
-
 const PdfIcon = ({ color = '#dc2626', size = 11 }: { color?: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
     <polyline points="14 2 14 8 20 8" />
     <path d="M9 15v-4h2a2 2 0 010 4H9zM15 11v4M12 11v4" />
+  </svg>
+)
+const SettingsIcon = ({ color = '#64748b', size = 12 }: { color?: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+  </svg>
+)
+const XIcon = ({ color = '#94a3b8', size = 8 }: { color?: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 )
 
@@ -270,7 +290,6 @@ const FacebookBrandIcon = ({ size = 18 }: { size?: number }) => (
     <path d="M13.5 10H11.5V16H9V10H7.5V7.5H9V6C9 4.34 9.84 3 12 3H14V5.5H12.5C11.95 5.5 11.5 5.95 11.5 6.5V7.5H14L13.5 10Z" fill="white" />
   </svg>
 )
-
 const InstagramBrandIcon = ({ size = 18 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
     <rect width="20" height="20" rx="5" fill="url(#ig-grad)" />
@@ -287,7 +306,6 @@ const InstagramBrandIcon = ({ size = 18 }: { size?: number }) => (
   </svg>
 )
 
-
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const SaveIcon = ({ color = 'white', size = 11 }: { color?: string; size?: number }) => (
@@ -299,14 +317,11 @@ const SaveIcon = ({ color = 'white', size = 11 }: { color?: string; size?: numbe
   </svg>
 )
 
-// Replace existing SourceBrandIcon:
 const SourceBrandIcon = ({ source, size = 18 }: { source: SourceType; size?: number }) => {
   if (source === 'reddit') return <RedditBrandIcon size={size} />
   if (source === 'instagram') return <InstagramBrandIcon size={size} />
   return <FacebookBrandIcon size={size} />
 }
-
-
 
 /* ═══════════════════════════════════════════════
    BADGE
@@ -320,6 +335,176 @@ const Badge = ({ label, style }: { label: string; style: { bg: string; color: st
 )
 
 /* ═══════════════════════════════════════════════
+   CHIP INPUT  (new — used for groupUrls & hashtags)
+   Allows typing a value then pressing Enter/comma to add a chip.
+═══════════════════════════════════════════════ */
+interface ChipInputProps {
+  chips: string[]
+  onChange: (chips: string[]) => void
+  placeholder: string
+  color: string
+  colorSoft: string
+  /** optional transform applied to each chip before adding (e.g. strip leading #) */
+  normalize?: (val: string) => string
+  /** prefix shown inside each chip badge */
+  prefix?: string
+}
+
+const ChipInput = ({ chips, onChange, placeholder, color, colorSoft, normalize, prefix = '' }: ChipInputProps) => {
+  const [draft, setDraft] = useState('')
+
+  const commit = (raw: string) => {
+    const val = (normalize ? normalize(raw) : raw).trim()
+    if (!val || chips.includes(val)) { setDraft(''); return }
+    onChange([...chips, val])
+    setDraft('')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      commit(draft)
+    } else if (e.key === 'Backspace' && !draft && chips.length) {
+      onChange(chips.slice(0, -1))
+    }
+  }
+
+  const remove = (idx: number) => onChange(chips.filter((_, i) => i !== idx))
+
+  return (
+    <div
+      className="flex flex-wrap gap-1 px-2 py-1.5 rounded-lg min-h-[32px] items-center"
+      style={{ background: '#f8fafc', border: `1px solid ${color}22`, transition: 'border-color 150ms' }}
+      onClick={() => {}}
+    >
+      {chips.map((chip, i) => (
+        <span
+          key={i}
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+          style={{ background: colorSoft, color: color, border: `1px solid ${color}22` }}
+        >
+          {prefix}{chip}
+          <button
+            onClick={() => remove(i)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+          >
+            <XIcon color={color} size={8} />
+          </button>
+        </span>
+      ))}
+      <input
+        type="text"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => draft.trim() && commit(draft)}
+        placeholder={chips.length === 0 ? placeholder : ''}
+        className="flex-1 text-[11px] bg-transparent outline-none text-slate-600 placeholder-slate-300"
+        style={{ minWidth: 80 }}
+      />
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════
+   SCRAPER PARAMS PANEL  (new — Facebook & Instagram)
+   Collapsible panel shown in the toolbar for button-mode sources.
+═══════════════════════════════════════════════ */
+interface FacebookParamsPanelProps {
+  params: FacebookScraperParams
+  onChange: (p: FacebookScraperParams) => void
+  color: string
+  colorSoft: string
+}
+
+const FacebookParamsPanel = ({ params, onChange, color, colorSoft }: FacebookParamsPanelProps) => (
+  <div
+    className="flex flex-col gap-2.5 px-4 py-3"
+    style={{ background: '#fafbfc', borderBottom: '1px solid #f1f5f9' }}
+  >
+    <div className="flex items-center gap-3">
+      <div className="flex-1">
+        <p className="text-[9.5px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+          Group URLs <span className="font-normal normal-case tracking-normal text-slate-300">(optional — Enter to add)</span>
+        </p>
+        <ChipInput
+          chips={params.groupUrls}
+          onChange={groupUrls => onChange({ ...params, groupUrls })}
+          placeholder="https://facebook.com/groups/…"
+          color={color}
+          colorSoft={colorSoft}
+        />
+      </div>
+      <div style={{ minWidth: 72 }}>
+        <p className="text-[9.5px] font-bold uppercase tracking-widest text-slate-400 mb-1">Limit</p>
+        <input
+          type="number"
+          min={1}
+          max={500}
+          value={params.limit ?? ''}
+          onChange={e => onChange({ ...params, limit: e.target.value ? Number(e.target.value) : undefined })}
+          placeholder="—"
+          className="w-full px-2 py-1.5 rounded-lg text-[11px] text-slate-700 outline-none"
+          style={{
+            background: '#f8fafc',
+            border: `1px solid ${color}22`,
+            height: 32,
+          }}
+        />
+      </div>
+    </div>
+  </div>
+)
+
+interface InstagramParamsPanelProps {
+  params: InstagramScraperParams
+  onChange: (p: InstagramScraperParams) => void
+  color: string
+  colorSoft: string
+}
+
+const InstagramParamsPanel = ({ params, onChange, color, colorSoft }: InstagramParamsPanelProps) => (
+  <div
+    className="flex flex-col gap-2.5 px-4 py-3"
+    style={{ background: '#fafbfc', borderBottom: '1px solid #f1f5f9' }}
+  >
+    <div className="flex items-center gap-3">
+      <div className="flex-1">
+        <p className="text-[9.5px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+          Hashtags <span className="font-normal normal-case tracking-normal text-slate-300">(optional — Enter to add)</span>
+        </p>
+        <ChipInput
+          chips={params.hashtags}
+          onChange={hashtags => onChange({ ...params, hashtags })}
+          placeholder="#realestate, #jaipur…"
+          color={color}
+          colorSoft={colorSoft}
+          normalize={v => v.replace(/^#+/, '')}
+          prefix="#"
+        />
+      </div>
+      <div style={{ minWidth: 72 }}>
+        <p className="text-[9.5px] font-bold uppercase tracking-widest text-slate-400 mb-1">Limit</p>
+        <input
+          type="number"
+          min={1}
+          max={500}
+          value={params.limit ?? ''}
+          onChange={e => onChange({ ...params, limit: e.target.value ? Number(e.target.value) : undefined })}
+          placeholder="—"
+          className="w-full px-2 py-1.5 rounded-lg text-[11px] text-slate-700 outline-none"
+          style={{
+            background: '#f8fafc',
+            border: `1px solid ${color}22`,
+            height: 32,
+          }}
+        />
+      </div>
+    </div>
+  </div>
+)
+
+/* ═══════════════════════════════════════════════
    SCRAPE NEW DATA BUTTON
 ═══════════════════════════════════════════════ */
 type ScrapeStatus = 'idle' | 'scraping' | 'done' | 'error'
@@ -327,12 +512,15 @@ type ScrapeStatus = 'idle' | 'scraping' | 'done' | 'error'
 const ScrapeNewDataButton = ({
   onScraped,
   disabled,
-  scrapFn = scrapNewPosts,         // ← new prop, defaults to FB
-  label = 'Scrape New Data',       // ← new prop
+  scrapFn = scrapNewPosts,
+  scrapParams = {},
+  label = 'Scrape New Data',
 }: {
   onScraped: () => void
   disabled: boolean
   scrapFn?: (data: any) => Promise<any>
+  /** Extra params forwarded to scrapFn (groupUrls, limit, hashtags, etc.) */
+  scrapParams?: Record<string, any>
   label?: string
 }) => {
   const [status, setStatus] = useState<ScrapeStatus>('idle')
@@ -341,7 +529,7 @@ const ScrapeNewDataButton = ({
     if (status === 'scraping' || disabled) return
     setStatus('scraping')
     try {
-      const result = await scrapFn({})
+      const result = await scrapFn(scrapParams)
       if (result !== null) {
         setStatus('done')
         setTimeout(() => { setStatus('idle'); onScraped() }, 1400)
@@ -523,9 +711,6 @@ const ScanningAnimation = ({ step, query, cfg }: { step: number; query: string; 
 
 /* ═══════════════════════════════════════════════
    POST CARDS
-═══════════════════════════════════════════════ */
-/* ═══════════════════════════════════════════════
-   SELECTABLE POST CARDS
 ═══════════════════════════════════════════════ */
 interface PostCardProps {
   post: SocialPost
@@ -798,7 +983,6 @@ const escapeCsvCell = (val: string | number | null | undefined): string => {
 
 const exportToCSV = (posts: SocialPost[], source: SourceType, query: string) => {
   const headers = ['#', 'Source', 'Author', 'Title', 'Caption', 'Likes', 'Comments', 'Shares', 'Engagement Score', 'URL', 'Date']
-
   const rows = posts.map((p, i) => {
     if (source === 'reddit') {
       const r = p as RedditPost
@@ -807,7 +991,6 @@ const exportToCSV = (posts: SocialPost[], source: SourceType, query: string) => 
     const f = p as FacebookPost
     return [i + 1, source === 'instagram' ? 'Instagram' : 'Facebook', f.author, f.title ?? '', f.text ?? '', f.likes, f.comments, f.shares, f.engagementScore, f.url, f.createdAt ? fmtDate(f.createdAt) : '']
   })
-
   const csv = [headers, ...rows].map(row => row.map(escapeCsvCell).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -826,139 +1009,18 @@ const exportToPDF = (posts: SocialPost[], insights: SocialInsights, source: Sour
   const postRows = posts.map((p, i) => {
     if (source === 'reddit') {
       const r = p as RedditPost
-      return `
-        <tr>
-          <td>${i + 1}</td>
-          <td>u/${r.author}</td>
-          <td>${(r.title ?? '').slice(0, 80)}${(r.title ?? '').length > 80 ? '…' : ''}</td>
-          <td style="text-align:center">${r.upvotes}</td>
-          <td style="text-align:center">${r.comments}</td>
-          <td><a href="${r.url}" style="color:${brandColor}">View ↗</a></td>
-        </tr>`
+      return `<tr><td>${i + 1}</td><td>u/${r.author}</td><td>${(r.title ?? '').slice(0, 80)}${(r.title ?? '').length > 80 ? '…' : ''}</td><td style="text-align:center">${r.upvotes}</td><td style="text-align:center">${r.comments}</td><td><a href="${r.url}" style="color:${brandColor}">View ↗</a></td></tr>`
     }
     const f = p as FacebookPost
     const caption = (f.text ?? '').slice(0, 80) + ((f.text ?? '').length > 80 ? '…' : '')
-    return `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${f.author ?? '—'}</td>
-        <td>${caption}</td>
-        <td style="text-align:center">${f.likes}</td>
-        <td style="text-align:center">${f.comments}</td>
-        <td><a href="${f.url}" style="color:${brandColor}">View ↗</a></td>
-      </tr>`
+    return `<tr><td>${i + 1}</td><td>${f.author ?? '—'}</td><td>${caption}</td><td style="text-align:center">${f.likes}</td><td style="text-align:center">${f.comments}</td><td><a href="${f.url}" style="color:${brandColor}">View ↗</a></td></tr>`
   }).join('')
 
-  const trendRows = insights.trends.map(t => `
-    <tr>
-      <td><strong>${t.keyword}</strong></td>
-      <td>${t.insight}</td>
-      <td style="text-align:center;text-transform:capitalize">${t.confidence}</td>
-    </tr>`).join('')
+  const trendRows = insights.trends.map(t => `<tr><td><strong>${t.keyword}</strong></td><td>${t.insight}</td><td style="text-align:center;text-transform:capitalize">${t.confidence}</td></tr>`).join('')
+  const signalRows = insights.demandSignals.map(s => `<tr><td style="text-transform:capitalize">${s.type}</td><td>${s.location}</td><td>${s.description}</td></tr>`).join('')
+  const oppRows = insights.opportunities.map((o, i) => `<tr><td>${i + 1}</td><td><strong>${o.title}</strong></td><td>${o.action}</td></tr>`).join('')
 
-  const signalRows = insights.demandSignals.map(s => `
-    <tr>
-      <td style="text-transform:capitalize">${s.type}</td>
-      <td>${s.location}</td>
-      <td>${s.description}</td>
-    </tr>`).join('')
-
-  const oppRows = insights.opportunities.map((o, i) => `
-    <tr>
-      <td>${i + 1}</td>
-      <td><strong>${o.title}</strong></td>
-      <td>${o.action}</td>
-    </tr>`).join('')
-
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<title>${sourceLabel} Social Mining Report</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; background: #fff; padding: 40px; font-size: 12px; line-height: 1.6; }
-  .header { border-bottom: 3px solid ${brandColor}; padding-bottom: 18px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; }
-  .header h1 { font-size: 22px; font-weight: 700; color: ${brandColor}; }
-  .header .meta { font-size: 11px; color: #94a3b8; text-align: right; }
-  .summary-box { background: #f8fafc; border-left: 4px solid ${brandColor}; padding: 14px 16px; border-radius: 4px; margin-bottom: 24px; font-size: 12px; color: #475569; line-height: 1.7; }
-  .stats-row { display: flex; gap: 12px; margin-bottom: 28px; }
-  .stat { flex: 1; background: #f8fafc; border-radius: 6px; padding: 12px; text-align: center; }
-  .stat .val { font-size: 20px; font-weight: 700; color: ${brandColor}; }
-  .stat .lbl { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
-  h2 { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
-  section { margin-bottom: 28px; }
-  table { width: 100%; border-collapse: collapse; font-size: 11px; }
-  th { background: ${brandColor}; color: #fff; font-weight: 600; padding: 8px 10px; text-align: left; }
-  td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
-  tr:nth-child(even) td { background: #fafbfc; }
-  a { color: ${brandColor}; text-decoration: none; }
-  .footer { margin-top: 32px; padding-top: 14px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #cbd5e1; text-align: center; }
-  @media print {
-    body { padding: 24px; }
-    .no-print { display: none; }
-    h2 { page-break-after: avoid; }
-    table { page-break-inside: auto; }
-    tr { page-break-inside: avoid; }
-  }
-</style>
-</head>
-<body>
-  <div class="header">
-    <div>
-      <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Social Mining Report</div>
-      <h1>${sourceLabel} — ${query}</h1>
-    </div>
-    <div class="meta">Generated ${dateStr}<br/>${posts.length} posts analysed</div>
-  </div>
-
-  <div class="summary-box">${insights.summary}</div>
-
-  <div class="stats-row">
-    <div class="stat"><div class="val">${posts.length}</div><div class="lbl">Posts</div></div>
-    <div class="stat"><div class="val">${insights.trends.length}</div><div class="lbl">Trends</div></div>
-    <div class="stat"><div class="val">${insights.demandSignals.length}</div><div class="lbl">Signals</div></div>
-    <div class="stat"><div class="val">${insights.opportunities.length}</div><div class="lbl">Opportunities</div></div>
-    <div class="stat"><div class="val">${Math.round(insights.sentiment.positive * 100)}%</div><div class="lbl">Positive</div></div>
-  </div>
-
-  <section>
-    <h2>Posts</h2>
-    <table>
-      <thead><tr><th>#</th><th>Author</th><th>Caption</th><th>Likes</th><th>Comments</th><th>Link</th></tr></thead>
-      <tbody>${postRows}</tbody>
-    </table>
-  </section>
-
-  <section>
-    <h2>Trends</h2>
-    <table>
-      <thead><tr><th>Keyword</th><th>Insight</th><th>Confidence</th></tr></thead>
-      <tbody>${trendRows}</tbody>
-    </table>
-  </section>
-
-  <section>
-    <h2>Demand Signals</h2>
-    <table>
-      <thead><tr><th>Type</th><th>Location</th><th>Description</th></tr></thead>
-      <tbody>${signalRows}</tbody>
-    </table>
-  </section>
-
-  <section>
-    <h2>Opportunities</h2>
-    <table>
-      <thead><tr><th>#</th><th>Title</th><th>Recommended Action</th></tr></thead>
-      <tbody>${oppRows}</tbody>
-    </table>
-  </section>
-
-  <div class="footer">Social Miner · ${sourceLabel} · ${dateStr}</div>
-
-  <script>window.onload = () => window.print()</script>
-</body>
-</html>`
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${sourceLabel} Social Mining Report</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;background:#fff;padding:40px;font-size:12px;line-height:1.6}.header{border-bottom:3px solid ${brandColor};padding-bottom:18px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-end}.header h1{font-size:22px;font-weight:700;color:${brandColor}}.header .meta{font-size:11px;color:#94a3b8;text-align:right}.summary-box{background:#f8fafc;border-left:4px solid ${brandColor};padding:14px 16px;border-radius:4px;margin-bottom:24px;font-size:12px;color:#475569;line-height:1.7}.stats-row{display:flex;gap:12px;margin-bottom:28px}.stat{flex:1;background:#f8fafc;border-radius:6px;padding:12px;text-align:center}.stat .val{font-size:20px;font-weight:700;color:${brandColor}}.stat .lbl{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}h2{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}section{margin-bottom:28px}table{width:100%;border-collapse:collapse;font-size:11px}th{background:${brandColor};color:#fff;font-weight:600;padding:8px 10px;text-align:left}td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}tr:nth-child(even) td{background:#fafbfc}a{color:${brandColor};text-decoration:none}.footer{margin-top:32px;padding-top:14px;border-top:1px solid #e2e8f0;font-size:10px;color:#cbd5e1;text-align:center}@media print{body{padding:24px}}</style></head><body><div class="header"><div><div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Social Mining Report</div><h1>${sourceLabel} — ${query}</h1></div><div class="meta">Generated ${dateStr}<br/>${posts.length} posts analysed</div></div><div class="summary-box">${insights.summary}</div><div class="stats-row"><div class="stat"><div class="val">${posts.length}</div><div class="lbl">Posts</div></div><div class="stat"><div class="val">${insights.trends.length}</div><div class="lbl">Trends</div></div><div class="stat"><div class="val">${insights.demandSignals.length}</div><div class="lbl">Signals</div></div><div class="stat"><div class="val">${insights.opportunities.length}</div><div class="lbl">Opportunities</div></div><div class="stat"><div class="val">${Math.round(insights.sentiment.positive * 100)}%</div><div class="lbl">Positive</div></div></div><section><h2>Posts</h2><table><thead><tr><th>#</th><th>Author</th><th>Caption</th><th>Likes</th><th>Comments</th><th>Link</th></tr></thead><tbody>${postRows}</tbody></table></section><section><h2>Trends</h2><table><thead><tr><th>Keyword</th><th>Insight</th><th>Confidence</th></tr></thead><tbody>${trendRows}</tbody></table></section><section><h2>Demand Signals</h2><table><thead><tr><th>Type</th><th>Location</th><th>Description</th></tr></thead><tbody>${signalRows}</tbody></table></section><section><h2>Opportunities</h2><table><thead><tr><th>#</th><th>Title</th><th>Recommended Action</th></tr></thead><tbody>${oppRows}</tbody></table></section><div class="footer">Social Miner · ${sourceLabel} · ${dateStr}</div><script>window.onload=()=>window.print()</script></body></html>`
 
   const w = window.open('', '_blank')
   if (w) { w.document.write(html); w.document.close() }
@@ -968,17 +1030,18 @@ const exportToPDF = (posts: SocialPost[], insights: SocialInsights, source: Sour
    RESULTS BUBBLE
 ═══════════════════════════════════════════════ */
 const ResultsBubble = ({
-  msg, cfg, onRerun, mode, onLoadMore
+  msg, cfg, onRerun, mode, onLoadMore, onPostsDeleted,
 }: {
   msg: ChatMessage
   cfg: SourceConfig
   onRerun: (query: string) => void
   mode: 'query' | 'button'
   onLoadMore: (id: string) => void
+  /** Called after a successful save — parent removes these posts from the message */
+  onPostsDeleted: (msgId: string, deletedUrls: string[]) => void
 }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('posts')
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
-  const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set())
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [saveResult, setSaveResult] = useState<{ saved: number; duplicates: number } | null>(null)
 
@@ -986,8 +1049,7 @@ const ResultsBubble = ({
   if (!insights) return null
 
   const allUrls = posts.map(p => (p as any).url as string)
-  const selectableUrls = allUrls.filter(u => !savedUrls.has(u))
-  const allSelected = selectableUrls.length > 0 && selectableUrls.every(u => selectedUrls.has(u))
+  const allSelected = allUrls.length > 0 && allUrls.every(u => selectedUrls.has(u))
 
   const togglePost = (url: string) => {
     setSelectedUrls(prev => {
@@ -1001,10 +1063,16 @@ const ResultsBubble = ({
     if (allSelected) {
       setSelectedUrls(new Set())
     } else {
-      setSelectedUrls(new Set(selectableUrls))
+      setSelectedUrls(new Set(allUrls))
     }
   }
 
+  /* ──────────────────────────────────────────────
+     handleSave
+     After a successful save the backend removes
+     those records from the scrape collection, so
+     we mirror that by removing them from the UI.
+  ────────────────────────────────────────────── */
   const handleSave = async () => {
     if (saveStatus === 'saving' || selectedUrls.size === 0) return
     setSaveStatus('saving')
@@ -1013,9 +1081,11 @@ const ResultsBubble = ({
     if (result !== null) {
       setSaveStatus('saved')
       setSaveResult(result)
-      // Mark all as saved, clear selection
-      setSavedUrls(prev => new Set([...prev, ...selectedUrls]))
+      const deletedUrls = Array.from(selectedUrls)
+      // Clear selection first
       setSelectedUrls(new Set())
+      // Remove deleted posts from parent message state
+      onPostsDeleted(msg.id, deletedUrls)
       setTimeout(() => { setSaveStatus('idle'); setSaveResult(null) }, 3000)
     } else {
       setSaveStatus('error')
@@ -1070,11 +1140,6 @@ const ResultsBubble = ({
               { v: `${insights.demandSignals.length} signals`, c: '#d97706' },
               { v: `${insights.opportunities.length} opps`, c: '#059669' },
             ].map(s => <span key={s.v} className="text-[10.5px] font-semibold" style={{ color: s.c }}>{s.v}</span>)}
-            {savedUrls.size > 0 && (
-              <span className="text-[10.5px] font-semibold" style={{ color: '#10b981' }}>
-                ✓ {savedUrls.size} in DB
-              </span>
-            )}
 
             <div className="ml-auto flex items-center gap-1.5">
               <span className="text-[9.5px] text-slate-300">{fmtTime(fetchedAt)}</span>
@@ -1153,12 +1218,6 @@ const ResultsBubble = ({
                     : `Click posts to select`}
                 </span>
 
-                {savedUrls.size > 0 && (
-                  <span className="text-[9.5px] font-semibold" style={{ color: '#10b981' }}>
-                    ✓ {savedUrls.size} saved
-                  </span>
-                )}
-
                 <div className="ml-auto">
                   <button
                     onClick={handleSave}
@@ -1186,22 +1245,28 @@ const ResultsBubble = ({
 
               {/* ── Post list ── */}
               <div className="p-3 flex flex-col gap-2">
-                {posts.map((p, i) => {
-                  const url = (p as any).url as string
-                  return (
-                    <PostCard
-                      key={`${url}-${i}`}
-                      post={p}
-                      source={cfg.id}
-                      index={i}
-                      selected={selectedUrls.has(url)}
-                      onToggle={() => togglePost(url)}
-                      alreadySaved={savedUrls.has(url)}
-                    />
-                  )
-                })}
+                {posts.length === 0 ? (
+                  <p className="text-center text-[11px] text-slate-400 py-6">
+                    All posts have been saved as leads.
+                  </p>
+                ) : (
+                  posts.map((p, i) => {
+                    const url = (p as any).url as string
+                    return (
+                      <PostCard
+                        key={`${url}-${i}`}
+                        post={p}
+                        source={cfg.id}
+                        index={i}
+                        selected={selectedUrls.has(url)}
+                        onToggle={() => togglePost(url)}
+                        alreadySaved={false}
+                      />
+                    )
+                  })
+                )}
 
-                {mode === 'query' && pagination.hasMore && (
+                {mode === 'query' && pagination.hasMore && posts.length > 0 && (
                   <button
                     onClick={() => onLoadMore(msg.id)}
                     disabled={msg.loadingMore}
@@ -1219,7 +1284,7 @@ const ResultsBubble = ({
                   </button>
                 )}
 
-                {!pagination.hasMore && (
+                {!pagination.hasMore && posts.length > 0 && (
                   <p className="text-center text-[9.5px] text-slate-300 py-1.5">
                     {posts.length} of {pagination.count || posts.length} posts loaded
                   </p>
@@ -1228,7 +1293,6 @@ const ResultsBubble = ({
             </div>
           )}
 
-          {/* insights / signals / opps tabs unchanged — paste your existing code here */}
           {activeTab === 'insights' && ( /* ... your existing insights tab JSX ... */ <></> )}
           {activeTab === 'signals'  && ( /* ... your existing signals tab JSX ...  */ <></> )}
           {activeTab === 'opps'     && ( /* ... your existing opps tab JSX ...     */ <></> )}
@@ -1269,7 +1333,7 @@ const WelcomeScreenQuery = ({ cfg, onSelect }: { cfg: SourceConfig; onSelect: (q
 )
 
 /* ═══════════════════════════════════════════════
-   WELCOME SCREEN — FACEBOOK (button mode)
+   WELCOME SCREEN — FACEBOOK/INSTAGRAM (button mode)
 ═══════════════════════════════════════════════ */
 const WelcomeScreenButton = ({
   cfg,
@@ -1281,7 +1345,6 @@ const WelcomeScreenButton = ({
   isFetching: boolean
 }) => (
   <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
-    {/* Icon */}
     <div
       className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
       style={{
@@ -1294,10 +1357,9 @@ const WelcomeScreenButton = ({
 
     <p className="text-[13px] font-semibold text-slate-700 mb-1">{cfg.label} Feed</p>
     <p className="text-[11.5px] text-slate-400 mb-7 text-center max-w-[210px] leading-relaxed">
-      Load all saved Facebook posts from the database and surface insights in one click.
+      Load all saved {cfg.label} posts from the database and surface insights in one click.
     </p>
 
-    {/* Feature pills */}
     <div className="flex flex-wrap justify-center gap-1.5 mb-7">
       {['Trends', 'Demand Signals', 'Sentiment', 'Opportunities'].map((label, i) => (
         <span
@@ -1316,7 +1378,6 @@ const WelcomeScreenButton = ({
       ))}
     </div>
 
-    {/* Primary CTA */}
     <button
       onClick={onFetch}
       disabled={isFetching}
@@ -1388,9 +1449,7 @@ const PromptBar = ({
 }
 
 /* ═══════════════════════════════════════════════
-   FETCH BAR  (Facebook / button mode)
-   Sticky bottom bar shown after first fetch, so
-   the user can re-fetch without scrolling back up.
+   FETCH BAR  (Facebook/Instagram / button mode)
 ═══════════════════════════════════════════════ */
 const FetchBar = ({
   onFetch,
@@ -1443,10 +1502,8 @@ const FetchBar = ({
 ═══════════════════════════════════════════════ */
 interface ScraperWorkspaceProps {
   cfg: SourceConfig
-  /** query is undefined/empty string for button mode */
-  fetchFn: (query?: string) => Promise<SocialData | null>
+  fetchFn: (query?: string, params?: ScraperParams) => Promise<SocialData | null>
   defaultQuery?: string
-  /** 'query' = Reddit-style text input; 'button' = Facebook-style one-click fetch */
   mode?: 'query' | 'button'
 }
 
@@ -1458,12 +1515,18 @@ const ScraperWorkspace = ({ cfg, fetchFn, defaultQuery, mode = 'query' }: Scrape
   const scrollRef = useRef<HTMLDivElement>(null)
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>[]>>(new Map())
   const isFetching = messages.some(m => m.status === 'fetching')
-
-  // Track most recent query for scrape-and-refresh
   const lastQueryRef = useRef<string>('')
-
-  // Track the last successful fetch time for the FetchBar hint
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null)
+
+  /* ── Per-source scraper params ── */
+  const [fbParams, setFbParams] = useState<FacebookScraperParams>({ groupUrls: [] })
+  const [igParams, setIgParams] = useState<InstagramScraperParams>({ hashtags: [] })
+  const [showParams, setShowParams] = useState(false)
+
+  const activeScraperParams: ScraperParams =
+    cfg.id === 'facebook' ? fbParams :
+    cfg.id === 'instagram' ? igParams :
+    {}
 
   const clearTimersFor = (id: string) => {
     timersRef.current.get(id)?.forEach(clearTimeout)
@@ -1474,44 +1537,53 @@ const ScraperWorkspace = ({ cfg, fetchFn, defaultQuery, mode = 'query' }: Scrape
     setMessages(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m))
   }, [])
 
-const messagesRef = useRef<ChatMessage[]>([])
-useEffect(() => { messagesRef.current = messages }, [messages])
+  const messagesRef = useRef<ChatMessage[]>([])
+  useEffect(() => { messagesRef.current = messages }, [messages])
 
-const handleLoadMore = useCallback(async (msgId: string) => {
-  const msg = messagesRef.current.find(m => m.id === msgId)  // ← ref, not stale closure
-  if (!msg || !msg.pagination.after || msg.loadingMore) return
-  updateMsg(msgId, { loadingMore: true })
-  try {
-    const result = await fetchFn(`${msg.query}&after=${msg.pagination.after}`)
-    if (result?.success) {
-      setMessages(prev => prev.map(m => {
-        if (m.id !== msgId) return m
-        const old = m.insights
-        const next = result.insights
-        const merged = old && next ? {
-          summary:       old.summary,
-          trends:        [...old.trends,        ...next.trends],
-          demandSignals: [...old.demandSignals, ...next.demandSignals],
-          opportunities: [...old.opportunities, ...next.opportunities],
-          sentiment: {
-            positive: old.sentiment.positive + next.sentiment.positive,
-            neutral:  old.sentiment.neutral  + next.sentiment.neutral,
-            negative: old.sentiment.negative + next.sentiment.negative,
-          },
-        } : old ?? next
-        return {
-          ...m,
-          posts:       [...m.posts, ...(result.posts ?? [])],
-          pagination:  result.pagination ?? m.pagination,
-          insights:    merged,
-          loadingMore: false,
-        }
-      }))
-    } else {
-      updateMsg(msgId, { loadingMore: false })
-    }
-  } catch (e) { console.error(e); updateMsg(msgId, { loadingMore: false }) }
-}, [fetchFn, updateMsg])  // ← messages removed from deps (now using ref)
+  /* ── Remove posts deleted via save ── */
+  const handlePostsDeleted = useCallback((msgId: string, deletedUrls: string[]) => {
+    const urlSet = new Set(deletedUrls)
+    setMessages(prev => prev.map(m => {
+      if (m.id !== msgId) return m
+      return { ...m, posts: m.posts.filter(p => !urlSet.has((p as any).url as string)) }
+    }))
+  }, [])
+
+  const handleLoadMore = useCallback(async (msgId: string) => {
+    const msg = messagesRef.current.find(m => m.id === msgId)
+    if (!msg || !msg.pagination.after || msg.loadingMore) return
+    updateMsg(msgId, { loadingMore: true })
+    try {
+      const result = await fetchFn(`${msg.query}&after=${msg.pagination.after}`)
+      if (result?.success) {
+        setMessages(prev => prev.map(m => {
+          if (m.id !== msgId) return m
+          const old = m.insights
+          const next = result.insights
+          const merged = old && next ? {
+            summary:       old.summary,
+            trends:        [...old.trends,        ...next.trends],
+            demandSignals: [...old.demandSignals, ...next.demandSignals],
+            opportunities: [...old.opportunities, ...next.opportunities],
+            sentiment: {
+              positive: old.sentiment.positive + next.sentiment.positive,
+              neutral:  old.sentiment.neutral  + next.sentiment.neutral,
+              negative: old.sentiment.negative + next.sentiment.negative,
+            },
+          } : old ?? next
+          return {
+            ...m,
+            posts:       [...m.posts, ...(result.posts ?? [])],
+            pagination:  result.pagination ?? m.pagination,
+            insights:    merged,
+            loadingMore: false,
+          }
+        }))
+      } else {
+        updateMsg(msgId, { loadingMore: false })
+      }
+    } catch (e) { console.error(e); updateMsg(msgId, { loadingMore: false }) }
+  }, [fetchFn, updateMsg])
 
   const runFetch = useCallback(async (query: string) => {
     lastQueryRef.current = query
@@ -1538,8 +1610,9 @@ const handleLoadMore = useCallback(async (msgId: string) => {
 
     let result: SocialData | null = null
     try {
-      // For button mode fetchFn doesn't need a query argument
-      result = mode === 'button' ? await fetchFn() : await fetchFn(query)
+      result = mode === 'button'
+        ? await fetchFn(undefined, activeScraperParams)
+        : await fetchFn(query)
     } catch (e) {
       console.error(e)
     }
@@ -1562,11 +1635,11 @@ const handleLoadMore = useCallback(async (msgId: string) => {
       clearTimersFor(id)
     }, delay)
     timers.push(finish)
-  }, [cfg, fetchFn, mode, updateMsg])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg, fetchFn, mode, updateMsg, fbParams, igParams])
 
   const handleRerun = useCallback((query: string) => { runFetch(query) }, [runFetch])
 
-  /** Used by both Submit (query mode) and Fetch button (button mode) */
   const handleFetch = useCallback(() => {
     if (isFetching) return
     if (mode === 'button') {
@@ -1579,7 +1652,6 @@ const handleLoadMore = useCallback(async (msgId: string) => {
     }
   }, [isFetching, mode, inputQuery, runFetch])
 
-  /** Called by ScrapeNewDataButton after scrapNewPosts succeeds */
   const handlePostScrape = useCallback(() => {
     const q = lastQueryRef.current || (mode === 'button' ? BUTTON_MODE_LABEL : cfg.suggestedQueries[0])
     if (q) runFetch(q)
@@ -1599,42 +1671,91 @@ const handleLoadMore = useCallback(async (msgId: string) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
- const isButtonMode = mode === 'button'
+  const isButtonMode = mode === 'button'
   const hasMessages = messages.length > 0
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: '#f8fafc' }}>
 
       {/* ════════════════════════════════════
-          Facebook toolbar (Scrape New Data)
+          Facebook / Instagram toolbar
       ════════════════════════════════════ */}
-    {isButtonMode && (
-  <div
-    className="flex-shrink-0 flex items-center justify-between px-4"
-    style={{
-      height: 46,
-      background: '#fff',
-      borderBottom: '1px solid #f1f5f9',
-      boxShadow: '0 1px 0 #f1f5f9',
-    }}
-  >
-    <div className="flex items-center gap-2">
-      <SourceBrandIcon source={cfg.id} size={14} />
-      <span
-        className="text-[10px] font-bold uppercase tracking-widest"
-        style={{ color: '#94a3b8', letterSpacing: '0.1em' }}
-      >
-        {cfg.label} Feed
-      </span>
-    </div>
-    <ScrapeNewDataButton
-      onScraped={handlePostScrape}
-      disabled={isFetching}
-      scrapFn={cfg.scrapFn}         // ← pulled from config (see step 6)
-      label="Scrape New Data"
-    />
-  </div>
-)}
+      {isButtonMode && (
+        <div>
+          {/* ── Main toolbar row ── */}
+          <div
+            className="flex-shrink-0 flex items-center justify-between px-4"
+            style={{
+              height: 46,
+              background: '#fff',
+              borderBottom: showParams ? 'none' : '1px solid #f1f5f9',
+              boxShadow: showParams ? 'none' : '0 1px 0 #f1f5f9',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <SourceBrandIcon source={cfg.id} size={14} />
+              <span
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: '#94a3b8', letterSpacing: '0.1em' }}
+              >
+                {cfg.label} Feed
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Params toggle */}
+              <button
+                onClick={() => setShowParams(v => !v)}
+                title="Configure scrape parameters"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all"
+                style={{
+                  background: showParams ? (cfg.id === 'instagram' ? 'rgba(238,42,123,0.07)' : 'rgba(24,119,242,0.07)') : 'transparent',
+                  border: `1px solid ${showParams ? cfg.color + '33' : '#e2e8f0'}`,
+                  color: showParams ? cfg.color : '#94a3b8',
+                  cursor: 'pointer',
+                  transition: 'all 150ms',
+                }}
+              >
+                <SettingsIcon color={showParams ? cfg.color : '#94a3b8'} size={11} />
+                {cfg.id === 'facebook'
+                  ? (fbParams.groupUrls.length > 0 || fbParams.limit ? <span style={{ color: cfg.color }}>configured</span> : 'configure')
+                  : (igParams.hashtags.length > 0 || igParams.limit ? <span style={{ color: cfg.color }}>configured</span> : 'configure')
+                }
+              </button>
+              <ScrapeNewDataButton
+                onScraped={handlePostScrape}
+                disabled={isFetching}
+                scrapFn={cfg.scrapFn}
+                scrapParams={activeScraperParams as Record<string, any>}
+                label="Scrape New Data"
+              />
+            </div>
+          </div>
+
+          {/* ── Collapsible params panel ── */}
+          <div style={{
+            maxHeight: showParams ? 120 : 0,
+            overflow: 'hidden',
+            transition: 'max-height 280ms cubic-bezier(0.4,0,0.2,1)',
+          }}>
+            {cfg.id === 'facebook' && (
+              <FacebookParamsPanel
+                params={fbParams}
+                onChange={setFbParams}
+                color={cfg.color}
+                colorSoft={cfg.colorSoft}
+              />
+            )}
+            {cfg.id === 'instagram' && (
+              <InstagramParamsPanel
+                params={igParams}
+                onChange={setIgParams}
+                color={cfg.color}
+                colorSoft={cfg.colorSoft}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ════════════════════════════════════
           Scroll area
@@ -1645,7 +1766,6 @@ const handleLoadMore = useCallback(async (msgId: string) => {
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}
       >
         {!hasMessages ? (
-          /* Welcome screens */
           mode === 'button' ? (
             <WelcomeScreenButton cfg={cfg} onFetch={handleFetch} isFetching={isFetching} />
           ) : (
@@ -1656,7 +1776,7 @@ const handleLoadMore = useCallback(async (msgId: string) => {
             {messages.map(msg => (
               <div key={msg.id} className="flex flex-col gap-3">
 
-                {/* ── User "message" bubble ── */}
+                {/* ── User bubble ── */}
                 <div className="flex justify-end">
                   <div
                     className="max-w-[78%] px-4 py-2.5 rounded-2xl rounded-br-sm text-[12px] text-white leading-relaxed flex items-center gap-2"
@@ -1698,7 +1818,14 @@ const handleLoadMore = useCallback(async (msgId: string) => {
                   </div>
                 )}
                 {msg.status === 'done' && (
-                  <ResultsBubble msg={msg} cfg={cfg} onRerun={handleRerun} mode={mode}  onLoadMore={handleLoadMore}   />
+                  <ResultsBubble
+                    msg={msg}
+                    cfg={cfg}
+                    onRerun={handleRerun}
+                    mode={mode}
+                    onLoadMore={handleLoadMore}
+                    onPostsDeleted={handlePostsDeleted}
+                  />
                 )}
               </div>
             ))}
@@ -1708,8 +1835,6 @@ const handleLoadMore = useCallback(async (msgId: string) => {
 
       {/* ════════════════════════════════════
           Bottom bar
-          · Query mode  → PromptBar (text input + send)
-          · Button mode → FetchBar  (re-fetch button, only after first fetch)
       ════════════════════════════════════ */}
       {mode === 'query' ? (
         <PromptBar
@@ -1749,8 +1874,7 @@ export const RedditScrapper = ({ defaultQuery }: ScraperProps) => (
 export const FacebookScrapper = ({ defaultQuery }: ScraperProps) => (
   <ScraperWorkspace
     cfg={getSourceConfig('facebook')}
-    // getFacebookPosts takes no arguments
-    fetchFn={getFacebookPosts as () => Promise<SocialData | null>}
+    fetchFn={getFacebookPosts as (q?: string, p?: ScraperParams) => Promise<SocialData | null>}
     mode="button"
   />
 )
@@ -1758,10 +1882,11 @@ export const FacebookScrapper = ({ defaultQuery }: ScraperProps) => (
 export const InstagramScrapper = ({ defaultQuery }: ScraperProps) => (
   <ScraperWorkspace
     cfg={getSourceConfig('instagram')}
-    fetchFn={getInstagramPosts as () => Promise<SocialData | null>}
+    fetchFn={getInstagramPosts as (q?: string, p?: ScraperParams) => Promise<SocialData | null>}
     mode="button"
   />
 )
+
 /* ═══════════════════════════════════════════════
    SOURCE NAV ITEM
 ═══════════════════════════════════════════════ */
@@ -1789,12 +1914,11 @@ const SourceNavItem = ({
         style={{ color: active ? cfg.color : '#475569' }}>
         {cfg.label}
       </p>
-      {/* <p className="text-[9.5px] text-slate-400 mt-0.5">{msgCount > 0 ? `${msgCount} ${msgCount === 1 ? 'fetch' : 'fetches'}` : 'No fetches yet'}</p> */}
-<p className="text-[9.5px] text-slate-400 mt-0.5">
-  {cfg.id === 'facebook'  && 'Group posts & listings'}
-  {cfg.id === 'instagram' && 'Reels, posts & hashtags'}
-  {cfg.id === 'reddit'    && 'Community discussions'}
-</p>
+      <p className="text-[9.5px] text-slate-400 mt-0.5">
+        {cfg.id === 'facebook'  && 'Group posts & listings'}
+        {cfg.id === 'instagram' && 'Reels, posts & hashtags'}
+        {cfg.id === 'reddit'    && 'Community discussions'}
+      </p>
     </div>
     {msgCount > 0 && (
       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
@@ -1821,16 +1945,16 @@ const SocialMiningAgentWorkspace = ({
 }: SocialMiningAgentWorkspaceProps) => {
   const [activeSource, setActiveSource] = useState<SourceType>(defaultSource)
 
-const scrapers: { source: SourceType; Component: React.FC<ScraperProps> }[] = [
-  { source: 'facebook',  Component: FacebookScrapper  },
-  { source: 'instagram', Component: InstagramScrapper },
-  { source: 'reddit',    Component: RedditScrapper    },
-]
+  const scrapers: { source: SourceType; Component: React.FC<ScraperProps> }[] = [
+    { source: 'facebook',  Component: FacebookScrapper  },
+    { source: 'instagram', Component: InstagramScrapper },
+    { source: 'reddit',    Component: RedditScrapper    },
+  ]
 
   return (
     <div className="flex h-full overflow-hidden rounded-xl" style={{ background: '#f8fafc' }}>
       <div className="flex flex-col flex-shrink-0 py-3 px-2 gap-1"
-        style={{  background: '#f1f5f9', borderRight: '1px solid #e2e8f0' }}>
+        style={{ background: '#f1f5f9', borderRight: '1px solid #e2e8f0' }}>
         <div className="px-2 pb-3 mb-1" style={{ borderBottom: '1px solid #e2e8f0' }}>
           <p className="text-[7px] font-bold text-slate-500 uppercase tracking-widest leading-none">Social</p>
           <p className="text-[16px] font-bold text-[var(--color-primary)] leading-snug">Miner</p>
@@ -1867,5 +1991,3 @@ const scrapers: { source: SourceType; Component: React.FC<ScraperProps> }[] = [
 }
 
 export default SocialMiningAgentWorkspace
-
-
