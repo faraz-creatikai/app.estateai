@@ -86,11 +86,13 @@ type TabKey = 'posts' | 'insights' | 'signals' | 'opps'
 export interface FacebookScraperParams {
   groupUrls: string[]
   limit?: number
+  days?: number
 }
 
 export interface InstagramScraperParams {
   hashtags: string[]
   limit?: number
+  days?: number
 }
 
 export type ScraperParams = FacebookScraperParams | InstagramScraperParams | {}
@@ -452,6 +454,23 @@ const FacebookParamsPanel = ({ params, onChange, color, colorSoft }: FacebookPar
           }}
         />
       </div>
+      <div style={{ minWidth: 72 }}>
+        <p className="text-[9.5px] font-bold uppercase tracking-widest text-slate-400 mb-1">Days</p>
+        <input
+          type="number"
+          min={1}
+          max={365}
+          value={params.days ?? ''}
+          onChange={e => onChange({ ...params, days: e.target.value ? Number(e.target.value) : undefined })}
+          placeholder="—"
+          className="w-full px-2 py-1.5 rounded-lg text-[11px] text-slate-700 outline-none"
+          style={{
+            background: '#f8fafc',
+            border: `1px solid ${color}22`,
+            height: 32,
+          }}
+        />
+      </div>
     </div>
   </div>
 )
@@ -491,6 +510,23 @@ const InstagramParamsPanel = ({ params, onChange, color, colorSoft }: InstagramP
           max={500}
           value={params.limit ?? ''}
           onChange={e => onChange({ ...params, limit: e.target.value ? Number(e.target.value) : undefined })}
+          placeholder="—"
+          className="w-full px-2 py-1.5 rounded-lg text-[11px] text-slate-700 outline-none"
+          style={{
+            background: '#f8fafc',
+            border: `1px solid ${color}22`,
+            height: 32,
+          }}
+        />
+      </div>
+      <div style={{ minWidth: 72 }}>
+        <p className="text-[9.5px] font-bold uppercase tracking-widest text-slate-400 mb-1">Days</p>
+        <input
+          type="number"
+          min={1}
+          max={365}
+          value={params.days ?? ''}
+          onChange={e => onChange({ ...params, days: e.target.value ? Number(e.target.value) : undefined })}
           placeholder="—"
           className="w-full px-2 py-1.5 rounded-lg text-[11px] text-slate-700 outline-none"
           style={{
@@ -1717,8 +1753,8 @@ const ScraperWorkspace = ({ cfg, fetchFn, defaultQuery, mode = 'query' }: Scrape
               >
                 <SettingsIcon color={showParams ? cfg.color : '#94a3b8'} size={11} />
                 {cfg.id === 'facebook'
-                  ? (fbParams.groupUrls.length > 0 || fbParams.limit ? <span style={{ color: cfg.color }}>configured</span> : 'configure')
-                  : (igParams.hashtags.length > 0 || igParams.limit ? <span style={{ color: cfg.color }}>configured</span> : 'configure')
+                  ? (fbParams.groupUrls.length > 0 || fbParams.limit || fbParams.days ? <span style={{ color: cfg.color }}>configured</span> : 'configure')
+                  : (igParams.hashtags.length > 0 || igParams.limit || igParams.days ? <span style={{ color: cfg.color }}>configured</span> : 'configure')
                 }
               </button>
               <ScrapeNewDataButton
@@ -1733,7 +1769,7 @@ const ScraperWorkspace = ({ cfg, fetchFn, defaultQuery, mode = 'query' }: Scrape
 
           {/* ── Collapsible params panel ── */}
           <div style={{
-            maxHeight: showParams ? 120 : 0,
+            maxHeight: showParams ? 140 : 0,
             overflow: 'hidden',
             transition: 'max-height 280ms cubic-bezier(0.4,0,0.2,1)',
           }}>

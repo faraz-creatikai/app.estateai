@@ -366,7 +366,7 @@ export default function MinedLeads() {
             <PopupMenu isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
 
                 {/* ── Modal Shell: flex column, capped to viewport ── */}
-                <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)]">
+                <div className="bg-white w-full h-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)]">
 
                     {/* ── Header (fixed, never scrolls) ── */}
                     <div className="relative shrink-0 bg-[var(--color-primary)] px-7 pt-4 pb-10">
