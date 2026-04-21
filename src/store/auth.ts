@@ -173,6 +173,7 @@ export const updateAdminDetails = async (id: string, updatedData: Partial<Admin>
       company: updatedData.Company,
       AddressLine1: updatedData.AddressLine1,
       AddressLine2: updatedData.AddressLine2,
+      status: updatedData.Status
     };
     const res = await fetch(API_ROUTES.ADMIN.UPDATE_DETAILS(id), {
       method: "PUT",
