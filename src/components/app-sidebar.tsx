@@ -33,6 +33,7 @@ import {
 import { title } from "process";
 import { useAuth } from "@/context/AuthContext";
 import { FaRobot } from "react-icons/fa";
+import { TbSocial } from "react-icons/tb";
 
 // This is sample data.
 const data = {
@@ -101,6 +102,11 @@ const data = {
       title: "Task",
       url: "/task",
       icon: Pointer,
+    },
+    {
+      title:"Social Media Manager",
+      url:"/socialmedia-manager",
+      icon: TbSocial
     },
     {
       title: "Masters",

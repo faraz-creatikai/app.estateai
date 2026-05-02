@@ -1,7 +1,9 @@
 'use client'
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ProtectedRoute from "../component/ProtectedRoutes";
 import toast, { Toaster } from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
+import { getInstagramLivePosts } from "@/store/social-media/socialMedia";
 
 export default function DatabaseManager() {
   const [filters, setFilters] = useState({
@@ -30,11 +32,39 @@ export default function DatabaseManager() {
     toast.success("Filters cleared!");
   };
 
+  const { admin, isLoading, login } = useAuth();
+
+  const connectInstagram = (userId:string) => {
+  const clientId = process.env.NEXT_PUBLIC_FB_APP_ID;
+  const redirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI;
+
+  const url =
+    `https://www.facebook.com/v19.0/dialog/oauth` +
+    `?client_id=${clientId}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri!)}` +
+    `&scope=pages_show_list,instagram_basic,instagram_content_publish` +
+    `&response_type=code` +
+    `&state=${userId}`;
+
+  window.location.href = url;
+};
+
+
+const fetchInstaPost = async ()=>{
+  const res = await getInstagramLivePosts();
+  console.log(" res is ", res)
+}
+
+useEffect(()=>{
+  fetchInstaPost();
+},[])
   return (
     <ProtectedRoute>
       <div className="flex min-h-[calc(100vh-56px)] overflow-auto bg-gray-200 max-md:py-10">
         <Toaster position="top-right" />
         <div className="p-4 max-md:p-3 w-full">
+
+          <button onClick={()=>connectInstagram(admin?._id!)}>connect instagram</button>
           
           {/* HEADER */}
           <div className="flex justify-between items-center">

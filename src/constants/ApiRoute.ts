@@ -117,7 +117,27 @@ export const API_ROUTES = {
       SAVE: `${BASE_URL}/social-content/minedlead/save`,
       GET: `${BASE_URL}/social-content/minedlead/get`,
       GET_BY_QUERY: (params: string) => `${BASE_URL}/social-content/minedlead/get?${params}`,
-      CONVERT:`${BASE_URL}/social-content/minedlead/convert`,
+      CONVERT: `${BASE_URL}/social-content/minedlead/convert`,
+    }
+  },
+  SOCIALMEDIA: {
+    INSTAGRAM: {
+      GET_LIVE_POST: `${BASE_URL}/social-auth/get-instagram-posts`,
+      GET_ANALYTICS: `${BASE_URL}/social-auth/get-instagram-analytics`,
+      DISCONNECT_ACCOUNT: `${BASE_URL}/social-auth/disconnect-instagram`,
+      SCHEDULE_POST: `${BASE_URL}/social-auth/schedule-instagram-post`,
+      GET_SCHEDULED_POST : (params:string)=> `${BASE_URL}/social-auth/scheduled-posts-data?platform=${params}`,
+
+    },
+    FACEBOOK: {
+      GET_LIVE_POST: `${BASE_URL}/social-auth/get-facebook-posts`,
+      GET_ANALYTICS: `${BASE_URL}/social-auth/get-facebook-analytics`,
+      DISCONNECT_ACCOUNT: `${BASE_URL}/social-auth/disconnect-facebook`,
+      SCHEDULE_POST: `${BASE_URL}/social-auth/schedule-facebook-post`,
+      GET_SCHEDULED_POST : (params:string)=> `${BASE_URL}/social-auth/scheduled-posts-data?platform=${params}`,
+    },
+    AUTOSOCIALAGENT:{
+      RUN: `${BASE_URL}/social-auth/auto-social-agent`
     }
   },
   MASTERS: {

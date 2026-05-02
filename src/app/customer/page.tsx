@@ -84,6 +84,7 @@ import AIAgentSidebar from "../component/aiagents/AIAgentSidebar";
 import DataMiningAgentWorkspace from "../component/aiagents/AnalyticsAgentWorkspace";
 import AnalyticsAgentWorkspace from "../component/aiagents/AnalyticsAgentWorkspace";
 import SocialMiningAgentWorkspace from "../component/aiagents/MiningAgentWorkspace";
+import SocialAgentWorkspace from "../component/aiagents/SocialAgentWorkspace";
 
 
 interface DeleteAllDialogDataInterface { }
@@ -398,103 +399,85 @@ export default function Customer() {
     setAgents(agents);
   }
 
+  // ── Derive which param and which options array are active ─────────────────────
+  // Computed outside the effect so it can be used as a precise dependency.
+  const status = searchParams.get("Campaign");
+  const reference = searchParams.get("ReferenceId");
+  const leadtemperature = searchParams.get("LeadTemperature");
+
+  const activeParam = status
+    ? "Campaign"
+    : reference
+      ? "ReferenceId"
+      : leadtemperature
+        ? "LeadTemperature"
+        : null;
+
+  const relevantOptions = activeParam ? fieldOptions?.[activeParam] : null;
+
+
+  // ── Effect 1: Mount-only ──────────────────────────────────────────────────────
   useEffect(() => {
-    const status = searchParams.get("Campaign");
-    const reference = searchParams.get("ReferenceId");
-    const leadtemperature = searchParams.get("LeadTemperature");
-    if (!fieldOptions?.Campaign?.length) return;
-    if (!fieldOptions?.ReferenceId?.length) return;
-    if (!fieldOptions?.LeadTemperature?.length) return;
-
-    if (status) {
-
-      const campaignObj = fieldOptions?.Campaign?.find(
-        (c) => c.Name === status
-      );
-      // Auto set filter
-      setFilters((prev) => ({
-        ...prev,
-        StatusAssign: [status],
-      }));
-      setDependent((prev) => ({
-        ...prev,
-        Campaign: { id: campaignObj?._id, name: campaignObj?.Name }
-      }))
-
-      const updatedFilters = {
-        ...filters,
-        Campaign: [status],
-      };
-
-      setCustomerTableLoader(false);
-
-      // Fetch filtered data
-      handleSelectChange("Campaign", status, updatedFilters);
-    }
-    else if (reference) {
-
-      const referenceObj = fieldOptions?.ReferenceId?.find(
-        (c) => c.Name === reference
-      );
-      // Auto set filter
-      setFilters((prev) => ({
-        ...prev,
-        ReferenceId: [reference],
-      }));
-      setDependent((prev) => ({
-        ...prev,
-        ReferenceId: { id: referenceObj?._id, name: referenceObj?.Name }
-      }))
-
-      const updatedFilters = {
-        ...filters,
-        ReferenceId: [reference],
-      };
-
-      setCustomerTableLoader(false);
-
-      // Fetch filtered data
-      handleSelectChange("ReferenceId", reference, updatedFilters);
-    }
-    else if (leadtemperature) {
-
-      const leadtemperatureObj = fieldOptions?.LeadTemperature?.find(
-        (c) => c.Name === leadtemperature
-      );
-      // Auto set filter
-      setFilters((prev) => ({
-        ...prev,
-        LeadTemperature: [leadtemperature],
-      }));
-      setDependent((prev) => ({
-        ...prev,
-        LeadTemperature: { id: leadtemperatureObj?._id, name: leadtemperatureObj?.Name }
-      }))
-
-      const updatedFilters = {
-        ...filters,
-        LeadTemperature: [leadtemperature],
-      };
-
-      setCustomerTableLoader(false);
-
-      // Fetch filtered data
-      handleSelectChange("LeadTemperature", leadtemperature, updatedFilters);
-    }
-    else {
-      getCustomers();
-      fetchFields();
-      getTotalCustomerPage();
-    }
     fetchAiAgents();
     fetchTodayCustomer();
+    fetchcalllogs();
     audioRef.current = new Audio(
       "https://res.cloudinary.com/dsyzuwice/video/upload/v1774423860/voicepop_ypkmtz.mp3"
     );
 
-    fetchcalllogs();
+    if (!activeParam) {
+      getCustomers();
+      getTotalCustomerPage();
+    }
 
-  }, [searchParams, fieldOptions.Campaign, fieldOptions.ReferenceId]);
+    fetchFields();
+  }, []);
+
+
+  // ── Effect 2: Fires only when the ONE relevant options array changes ───────────
+  // Because `relevantOptions` points to only Campaign OR ReferenceId OR
+  // LeadTemperature — not all three — this effect runs exactly once when
+  // the needed options load. Other arrays loading won't trigger it.
+  useEffect(() => {
+    if (!activeParam || !relevantOptions?.length) return;
+
+    if (status) {
+      const campaignObj = fieldOptions?.Campaign?.find((c) => c.Name === status);
+      setFilters((prev) => ({ ...prev, StatusAssign: [status] }));
+      setDependent((prev) => ({
+        ...prev,
+        Campaign: { id: campaignObj?._id, name: campaignObj?.Name },
+      }));
+      setCustomerTableLoader(false);
+      handleSelectChange("Campaign", status, { ...filters, Campaign: [status] });
+
+    } else if (reference) {
+      const referenceObj = fieldOptions?.ReferenceId?.find((c) => c.Name === reference);
+      setFilters((prev) => ({ ...prev, ReferenceId: [reference] }));
+      setDependent((prev) => ({
+        ...prev,
+        ReferenceId: { id: referenceObj?._id, name: referenceObj?.Name },
+      }));
+      setCustomerTableLoader(false);
+      handleSelectChange("ReferenceId", reference, { ...filters, ReferenceId: [reference] });
+
+    } else if (leadtemperature) {
+      const leadtemperatureObj = fieldOptions?.LeadTemperature?.find(
+        (c) => c.Name === leadtemperature
+      );
+      setFilters((prev) => ({ ...prev, LeadTemperature: [leadtemperature] }));
+      setDependent((prev) => ({
+        ...prev,
+        LeadTemperature: { id: leadtemperatureObj?._id, name: leadtemperatureObj?.Name },
+      }));
+      setCustomerTableLoader(false);
+      handleSelectChange("LeadTemperature", leadtemperature, {
+        ...filters,
+        LeadTemperature: [leadtemperature],
+      });
+    }
+
+  }, [searchParams, relevantOptions]); // only the ONE array that matters
 
   const fetchcalllogs = async () => {
     const res = await getCallReport();
@@ -1121,7 +1104,8 @@ export default function Customer() {
         whatsapptemplates.map((item: any): whatsappGetDataInterface => ({
           _id: item?._id ?? "",
           name: item?.name ?? "",
-          body: item?.body ?? ""
+          body: item?.body ?? "",
+          image: item?.whatsappImage[0] ?? "",
         }))
       );
 
@@ -1751,6 +1735,7 @@ export default function Customer() {
     Qualification: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-1_nz99v7.png" alt="Qualification" className=" object-contain w-10 h-10" />,
     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Mining" className=" object-contain w-10 h-10" />,
+    Social : <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
     default: "AG",
   };
 
@@ -2568,6 +2553,45 @@ export default function Customer() {
             setIsTableDialogOpen(true);
             handleTableDialogData(contactNumber);
           }}
+          renderActions={(item) => (
+            <div className=" flex justify-between w-full">
+
+              <Button
+                className=" bg-gray-500"
+                sx={{ backgroundColor: item.isChecked ? "#E8F5E9" : "#FFF0F5", color: item.isChecked ? "var(--color-primary)" : "#E91E63", minWidth: "32px", minHeight: "35px", borderRadius: "100%" }}
+                onClick={() =>
+                  handleChecked({ id: item._id, isChecked: item.isChecked })
+                }
+              >
+                {item.isChecked ? <IoCheckmarkDoneOutline size={20} /> : <IoCheckmark size={20} />}
+              </Button>
+
+              <Button
+                sx={{
+                  backgroundColor: temperatureConfig[item.LeadTemperature || "cold"]?.bg,
+                  color: temperatureConfig[item.LeadTemperature || "cold"]?.color,
+                  minWidth: "32px",
+                  height: "35px",
+                  borderRadius: "100%",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    filter: "brightness(0.95)",
+                    transform: "scale(1.05)"
+                  }
+                }}
+                onClick={() => {
+                  setTemperatureDialogData({
+                    id: item._id,
+                    name: item.CustomerName,
+                    current: item.LeadTemperature || "cold"
+                  });
+                  setIsTemperatureDialogOpen(true);
+                }}
+              >
+                {temperatureConfig[item.LeadTemperature || "cold"]?.icon}
+              </Button>
+            </div>
+          )}
         />
 
 
@@ -2984,6 +3008,12 @@ export default function Customer() {
                   ) : selectedAgent && selectedAgent.type === "Mining" ? (
                     <div className="flex-1 overflow-hidden ">
                       <SocialMiningAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                    </div>
+
+                    /* ── Error STATE ── */
+                  ): selectedAgent && selectedAgent.type === "Social" ? (
+                    <div className="flex-1 overflow-hidden ">
+                      <SocialAgentWorkspace isOpen={isAIAgentsDialogOpen} />
                     </div>
 
                     /* ── Error STATE ── */

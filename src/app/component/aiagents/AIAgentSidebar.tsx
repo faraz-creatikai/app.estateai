@@ -57,11 +57,18 @@ const AIAgentSidebar: React.FC<Props> = ({
                                     { step: "1", label: "Open the Mining workspace", icon: "🗄️" },
                                     { step: "2", label: "AI scans your entire lead database", icon: "🤖" },
                                     { step: "3", label: "Review patterns, risks & recommendations", icon: "📊" },
-                                ] : [
-                                    { step: "1", label: "Select an agent type", icon: "🤖" },
-                                    { step: "2", label: "Describe your task", icon: "✍️" },
-                                    { step: "3", label: "Get AI-powered results", icon: "⚡" },
-                                ];
+                                ]
+                                : selectedAgent?.type === "Social"
+                                    ? [
+                                        { step: "1", label: "Connect your social accounts", icon: "🔗" },
+                                        { step: "2", label: "AI analyses trends & engagement", icon: "📈" },
+                                        { step: "3", label: "Get content suggestions & insights", icon: "💡" },
+                                    ]
+                                    : [
+                                        { step: "1", label: "Select an agent type", icon: "🤖" },
+                                        { step: "2", label: "Describe your task", icon: "✍️" },
+                                        { step: "3", label: "Get AI-powered results", icon: "⚡" },
+                                    ];
 
     const capabilities =
         selectedAgent?.type === "Matching"
@@ -113,7 +120,17 @@ const AIAgentSidebar: React.FC<Props> = ({
                                     "Budget segment profiling",
                                     "Risk factor identification",
                                     "Actionable improvement suggestions",
-                                ] : [
+                                ]
+                                : selectedAgent?.type === "Social"
+                                ? [
+                                    "Content performance analysis",
+                                    "Optimal posting time suggestions",
+                                    "Audience engagement insights",
+                                    "Trend monitoring & alerts",
+                                    "Competitor content analysis",
+
+                                ]
+                                 : [
                                     "Intelligent lead matching",
                                     "Natural language interface",
                                     "Real-time AI processing",
@@ -134,6 +151,8 @@ const AIAgentSidebar: React.FC<Props> = ({
                             ? "Click Re-analyse after adding new leads to get fresh insights on the latest data."
                             : selectedAgent?.type === "Calling"
                                 ? "Review the AI briefing before the call to improve conversion chances."
+                                : selectedAgent?.type === "Social"
+                                ? "For content suggestions, specify the platform and audience for more tailored insights."
                                 : "Use natural language — the AI understands context, not just keywords.";
 
     return (

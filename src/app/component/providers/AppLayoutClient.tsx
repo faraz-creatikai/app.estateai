@@ -62,7 +62,7 @@ export default function AppLayoutClient({ children }: { children: ReactNode }) {
             {/* Content */}
             <main className="flex-1 overflow-y-auto bg-[var(--color-childbglight)] max-md:dark:bg-[var(--color-bgdark)]">
 
-              <div className="flex items-center gap-2 max-w-[100px] mt-4 ml-4 md:hidden">
+              <div className="flex items-center gap-2 max-w-[100px] mt-4 ml-4 sm:hidden">
                 <SidebarTrigger className="ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
               </div>

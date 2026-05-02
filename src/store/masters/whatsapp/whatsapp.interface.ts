@@ -9,6 +9,7 @@ export interface whatsappGetDataInterface {
     name:string;
     status?:string;
     body?:string;
+    image?:string;
 }
 
 

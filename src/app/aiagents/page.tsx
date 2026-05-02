@@ -197,6 +197,7 @@ const TYPE_COLORS: Record<string, string> = {
         "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-950 dark:text-fuchsia-300 dark:border-fuchsia-800",
     Analytics:
         "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800",
+        Social: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800",
 };
 
 const TYPE_ICON: Record<string, string | ReactElement> = {
@@ -207,9 +208,10 @@ const TYPE_ICON: Record<string, string | ReactElement> = {
     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
      Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Mining" className=" object-contain w-10 h-10" />,
     Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
+    Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
 };
 
-const ALL_TYPES = ["All", "Matching", "Followup", "Qualification", "Marketing", "Recommendation", "Mining", /* "Success" */];
+const ALL_TYPES = ["All", "Matching", "Followup", "Qualification", "Marketing", "Recommendation", "Mining", "Social" /* "Success" */];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

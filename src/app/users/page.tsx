@@ -74,7 +74,8 @@ export default function UsersPage() {
                 let admins: Admin[] = data.admins || [];
 
                 if (filters.Keyword) {
-                    const keyword = filters.Keyword.toLowerCase();
+                    /*   console.log(" keyword ",filters.Keyword) */
+                    const keyword = filters.Keyword?.toLowerCase();
                     admins = admins.filter(
                         (a) =>
                             a.name?.toLowerCase().includes(keyword) ||
@@ -95,15 +96,21 @@ export default function UsersPage() {
         getAdminList();
     }, [filters]);
 
-    const handleSelectChange = async (
+    const handleSelectChange = (
         field: keyof typeof filters,
         selected: string | string[]
     ) => {
-        const updatedFilters = {
-            ...filters,
-            [field]: Array.isArray(selected) ? selected : selected ? [selected] : [],
-        };
-        setFilters(updatedFilters);
+        setFilters((prev) => ({
+            ...prev,
+            [field]:
+                field === "Keyword"
+                    ? (selected as string)
+                    : Array.isArray(selected)
+                        ? selected
+                        : selected
+                            ? [selected]
+                            : [],
+        }));
     };
 
     const clearFilter = async () => {
@@ -137,7 +144,7 @@ export default function UsersPage() {
             setUserId("");
             return;
         }
-       // toast.error("failed to update password");
+        // toast.error("failed to update password");
 
     }
 
@@ -259,7 +266,7 @@ export default function UsersPage() {
                     <div className="flex justify-between items-center">
                         <PageHeader title="Dashboard" subtitles={["Users"]} />
 
-                        
+
                         <AddButton
                             url="/users/add"
                             text="Add"

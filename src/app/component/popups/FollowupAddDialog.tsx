@@ -12,6 +12,7 @@ import { handleFieldOptions } from "@/app/utils/handleFieldOptions";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import TextareaField from "../datafields/TextareaField";
+import VoiceToText from "../VoiceToText";
 
 interface Props {
   isOpen: boolean;
@@ -130,13 +131,23 @@ const FollowupAddDialog = ({ isOpen, onClose, customerId }: Props) => {
             onChange={(val) => handleChange("FollowupNextDate", val)}
           />
 
-          <TextareaField
-            name="Description"
-            label="Description"
-            value={formData.Description}
-            onChange={(e) => handleChange("Description", e.target.value)}
-            error={errors.Description}
-          />
+          <div className="relative">
+  <TextareaField
+    name="Description"
+    label="Description"
+    value={formData.Description}
+    onChange={(e) => handleChange("Description", e.target.value)}
+    error={errors.Description}
+  />
+
+  {/* 🎤 Voice button */}
+  <div className="absolute top-2 right-2">
+    <VoiceToText
+      value={formData.Description}
+      onChange={(text) => handleChange("Description", text)}
+    />
+  </div>
+</div>
 
           <div className="flex justify-end pt-4">
             <SaveButton text="Save" onClick={handleSubmit} />
