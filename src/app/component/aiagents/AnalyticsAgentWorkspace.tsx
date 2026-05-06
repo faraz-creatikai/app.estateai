@@ -75,6 +75,551 @@ const fmtTime  = (d: Date | null) =>
 const nullFmt = (v: number | null | undefined, suffix = '') =>
   v == null ? '—' : `${v}${suffix}`
 
+const fmtDate = (d: Date | null) =>
+  d ? d.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' }) : ''
+
+/* ─────────────────────────────────────────────
+   EXPORT UTILITIES
+───────────────────────────────────────────── */
+
+/** Export all report data to an XLSX workbook — one clean table per sheet,
+ *  column headers always in row 1, data rows from row 2 onwards.          */
+const exportToExcel = async (data: MiningData, lastAnalyzed: Date | null) => {
+  const XLSXmod = await import('xlsx')
+  const XLSX    = (XLSXmod as any).default ?? XLSXmod
+
+  const wb = XLSX.utils.book_new()
+
+  const makeSheet = (headers: string[], rows: (string | number)[][], colWidths: number[]) => {
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+    ws['!cols'] = colWidths.map(wch => ({ wch }))
+    return ws
+  }
+
+  const { hot, warm, cold } = data.funnelAnalysis
+  const funnelTotal  = hot + warm + cold
+  const budgetEntries = Object.entries(data.budgetAnalysis.distribution)
+  const budgetTotal  = budgetEntries.reduce((s, [, v]) => s + v, 0)
+  const reportDate   = `${fmtDate(lastAnalyzed)} ${fmtTime(lastAnalyzed)}`
+
+  /* ── Sheet 1: KPIs ─────────────────────────────────────────────────────
+     One flat table.  Every row is one metric.
+  ──────────────────────────────────────────────────────────────────────── */
+  XLSX.utils.book_append_sheet(wb,
+    makeSheet(
+      ['Report Date', 'Section', 'Metric', 'Value', 'Notes'],
+      [
+        [reportDate, 'Summary',       'Conversion Health',      data.summary.conversionHealth, ''],
+        [reportDate, 'Summary',       'Overview',               data.summary.overview,         ''],
+        [reportDate, 'KPIs',          'Leads (Last 7 Days)',     data.kpis.totalLeads7d,        ''],
+        [reportDate, 'KPIs',          'Leads (Last 30 Days)',    data.kpis.totalLeads30d,       ''],
+        [reportDate, 'KPIs',          'Total Leads (All Time)',  data.kpis.totalLeads,          ''],
+        [reportDate, 'KPIs',          'Conversion Rate (%)',     data.kpis.conversionRate,      data.kpis.conversionRate === 0 ? 'No conversions recorded' : ''],
+        [reportDate, 'KPIs',          'Top Campaign',            data.kpis.topCampaign,         ''],
+        [reportDate, 'KPIs',          'Top City',                data.kpis.topCity,             ''],
+        [reportDate, 'Top Performer', 'Best Campaign Name',      data.topPerformers.campaign.name,   ''],
+        [reportDate, 'Top Performer', 'Best Campaign Leads',     data.topPerformers.campaign.leads,  ''],
+        [reportDate, 'Top Performer', 'Best Campaign Conversions', data.topPerformers.campaign.conversions ?? 'N/A', ''],
+        [reportDate, 'Top Performer', 'Best Campaign Conv. Rate (%)', data.topPerformers.campaign.conversionRate ?? 'N/A', ''],
+        [reportDate, 'Top Performer', 'Top City Name',           data.topPerformers.city.name,  ''],
+        [reportDate, 'Top Performer', 'Top City Leads',          data.topPerformers.city.leads, ''],
+      ],
+      [22, 16, 32, 42, 28],
+    ),
+    'KPIs',
+  )
+
+  /* ── Sheet 2: Funnel Stages ────────────────────────────────────────────
+     One row per funnel stage.
+  ──────────────────────────────────────────────────────────────────────── */
+  XLSX.utils.book_append_sheet(wb,
+    makeSheet(
+      ['Stage', 'Lead Count', 'Percentage (%)', 'Is Dominant Stage'],
+      [
+        ['Hot',  hot,  Math.round((hot  / funnelTotal) * 100), data.funnelAnalysis.dominantStage === 'Hot'  ? 'Yes' : 'No'],
+        ['Warm', warm, Math.round((warm / funnelTotal) * 100), data.funnelAnalysis.dominantStage === 'Warm' ? 'Yes' : 'No'],
+        ['Cold', cold, Math.round((cold / funnelTotal) * 100), data.funnelAnalysis.dominantStage === 'Cold' ? 'Yes' : 'No'],
+      ],
+      [14, 14, 18, 20],
+    ),
+    'Funnel Stages',
+  )
+
+  /* ── Sheet 3: Engagement & Budget ─────────────────────────────────────
+     One row per metric/segment.  A "Category" column separates the two
+     logical groups without breaking the single-table structure.
+  ──────────────────────────────────────────────────────────────────────── */
+  XLSX.utils.book_append_sheet(wb,
+    makeSheet(
+      ['Category', 'Metric / Segment', 'Value', 'Unit / Notes'],
+      [
+        ['Engagement', 'Avg Follow-ups per Lead',    data.engagementAnalysis.avgFollowupsPerLead, 'times'],
+        ['Engagement', 'Avg Calls per Lead',          data.engagementAnalysis.avgCallsPerLead,      'times'],
+        ['Engagement', 'Engagement Quality',          data.engagementAnalysis.engagementQuality,    'rating'],
+        ...budgetEntries.map(([seg, cnt]) => [
+          'Budget',
+          seg,
+          cnt,
+          `${Math.round((cnt / budgetTotal) * 100)}% of total${seg === data.budgetAnalysis.topSegment ? ' — Top Segment' : ''}`,
+        ] as (string | number)[]),
+      ],
+      [14, 28, 12, 36],
+    ),
+    'Engagement & Budget',
+  )
+
+  /* ── Sheet 4: Problems ─────────────────────────────────────────────────
+     One row per problem.
+  ──────────────────────────────────────────────────────────────────────── */
+  XLSX.utils.book_append_sheet(wb,
+    makeSheet(
+      ['#', 'Problem ID', 'Title', 'Impact / Description'],
+      data.problems.map((p, i) => [i + 1, p.id, p.title, p.impact]),
+      [5, 14, 40, 70],
+    ),
+    'Problems',
+  )
+
+  /* ── Sheet 5: Actions ──────────────────────────────────────────────────
+     One row per action.
+  ──────────────────────────────────────────────────────────────────────── */
+  XLSX.utils.book_append_sheet(wb,
+    makeSheet(
+      ['#', 'Action ID', 'Priority', 'Title', 'Description'],
+      data.actions.map((a, i) => [i + 1, a.id, a.priority, a.title, a.description]),
+      [5, 14, 12, 40, 70],
+    ),
+    'Actions',
+  )
+
+  /* ── Download ── */
+  const ts = lastAnalyzed
+    ? `${lastAnalyzed.getFullYear()}${String(lastAnalyzed.getMonth() + 1).padStart(2, '0')}${String(lastAnalyzed.getDate()).padStart(2, '0')}`
+    : 'report'
+  XLSX.writeFile(wb, `CRM_Analytics_${ts}.xlsx`)
+}
+
+/** Export all report data to a PDF using jsPDF + jspdf-autotable */
+const exportToPDF = async (data: MiningData, lastAnalyzed: Date | null) => {
+  const { default: jsPDF }   = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const PRIMARY  = [3, 105, 161]   as [number, number, number]
+  const PURPLE   = [124, 58, 237]  as [number, number, number]
+  const RED      = [220, 38, 38]   as [number, number, number]
+  const GREEN    = [5, 150, 105]   as [number, number, number]
+  const DARK     = [30, 41, 59]    as [number, number, number]
+  const MUTED    = [100, 116, 139] as [number, number, number]
+  const BG_LIGHT = [248, 250, 252] as [number, number, number]
+  const W        = 210
+  const MARGIN   = 14
+
+  /* Helper to draw a section heading */
+  const sectionHeading = (text: string, y: number, color: [number, number, number]) => {
+    doc.setFillColor(...color)
+    doc.rect(MARGIN, y, 4, 5, 'F')
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...color)
+    doc.text(text, MARGIN + 7, y + 4)
+    return y + 11
+  }
+
+  /* ─────────── PAGE 1: Cover ─────────── */
+  // Gradient-like header band
+  doc.setFillColor(...PRIMARY)
+  doc.rect(0, 0, W, 46, 'F')
+  doc.setFillColor(124, 58, 237)
+  doc.rect(0, 40, W, 6, 'F')
+
+  doc.setFontSize(22)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text('CRM Analytics Report', MARGIN, 22)
+
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(186, 230, 253)
+  doc.text(`Generated on ${fmtDate(lastAnalyzed)} at ${fmtTime(lastAnalyzed)}`, MARGIN, 32)
+
+  // Health badge
+  const health = data.summary.conversionHealth
+  const healthColor: [number, number, number] =
+    health === 'Good' || health === 'Great' ? GREEN : health === 'Fair' ? [217, 119, 6] : RED
+  doc.setFillColor(...BG_LIGHT)
+  doc.roundedRect(MARGIN, 52, W - MARGIN * 2, 22, 3, 3, 'F')
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...healthColor)
+  doc.text(`Conversion Health: ${health}`, MARGIN + 5, 61)
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...MUTED)
+  const overviewLines = doc.splitTextToSize(data.summary.overview, W - MARGIN * 2 - 10)
+  doc.text(overviewLines.slice(0, 2), MARGIN + 5, 68)
+
+  /* ── KPI Grid (2×2) ── */
+  let y = 82
+  y = sectionHeading('Key Metrics', y, PRIMARY)
+
+  const kpis = [
+    { label: 'Leads (Last 7 days)',  value: String(data.kpis.totalLeads7d),           color: PRIMARY },
+    { label: 'Leads (Last 30 days)', value: data.kpis.totalLeads30d.toLocaleString(), color: PURPLE  },
+    { label: 'Total Leads',          value: data.kpis.totalLeads.toLocaleString(),     color: PRIMARY },
+    { label: 'Conversion Rate',      value: `${data.kpis.conversionRate}%`,
+      color: data.kpis.conversionRate === 0 ? RED : GREEN },
+  ]
+  const cellW = (W - MARGIN * 2 - 6) / 2
+  kpis.forEach((k, i) => {
+    const col = i % 2
+    const row = Math.floor(i / 2)
+    const cx  = MARGIN + col * (cellW + 6)
+    const cy  = y + row * 24
+
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(cx, cy, cellW, 20, 2, 2, 'F')
+    doc.setDrawColor(226, 232, 240)
+    doc.setLineWidth(0.3)
+    doc.roundedRect(cx, cy, cellW, 20, 2, 2, 'S')
+
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...MUTED)
+    doc.text(k.label, cx + 4, cy + 6)
+
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...k.color)
+    doc.text(k.value, cx + 4, cy + 15)
+  })
+  y += 54
+
+  /* ── Top Performers ── */
+  y = sectionHeading('Top Performers', y, PRIMARY)
+  autoTable(doc, {
+    startY: y,
+    margin: { left: MARGIN, right: MARGIN },
+    head: [['Type', 'Name', 'Leads', 'Conversions', 'Conv. Rate']],
+    body: [
+      ['Best Campaign',
+        data.topPerformers.campaign.name,
+        String(data.topPerformers.campaign.leads),
+        String(data.topPerformers.campaign.conversions ?? '—'),
+        nullFmt(data.topPerformers.campaign.conversionRate, '%'),
+      ],
+      ['Top City', data.topPerformers.city.name, String(data.topPerformers.city.leads), '—', '—'],
+    ],
+    headStyles:  { fillColor: PRIMARY, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+    bodyStyles:  { fontSize: 8, textColor: DARK },
+    alternateRowStyles: { fillColor: BG_LIGHT },
+    styles: { cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2 },
+  })
+  y = (doc as any).lastAutoTable.finalY + 10
+
+  /* ─────────── PAGE 2: Funnel & Engagement ─────────── */
+  doc.addPage()
+  doc.setFillColor(...PRIMARY)
+  doc.rect(0, 0, W, 14, 'F')
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text('Funnel & Engagement Analysis', MARGIN, 9.5)
+  y = 22
+
+  /* Lead stages table */
+  const { hot, warm, cold } = data.funnelAnalysis
+  const total = hot + warm + cold
+  y = sectionHeading('Lead Stage Distribution', y, PURPLE)
+  autoTable(doc, {
+    startY: y,
+    margin: { left: MARGIN, right: MARGIN },
+    head: [['Stage', 'Count', '% of Total', 'Status']],
+    body: [
+      ['🔴 Hot',  hot.toLocaleString(),  `${Math.round((hot  / total) * 100)}%`, 'High Intent'],
+      ['🟡 Warm', warm.toLocaleString(), `${Math.round((warm / total) * 100)}%`, 'Nurturing'],
+      ['🔵 Cold', cold.toLocaleString(), `${Math.round((cold / total) * 100)}%`, 'Early Stage'],
+      ['Total', total.toLocaleString(), '100%', `Dominant: ${data.funnelAnalysis.dominantStage}`],
+    ],
+    headStyles:  { fillColor: PURPLE, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+    bodyStyles:  { fontSize: 8, textColor: DARK },
+    alternateRowStyles: { fillColor: BG_LIGHT },
+    styles: { cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2 },
+  })
+  y = (doc as any).lastAutoTable.finalY + 10
+
+  /* Engagement */
+  y = sectionHeading('Engagement Metrics', y, PURPLE)
+  autoTable(doc, {
+    startY: y,
+    margin: { left: MARGIN, right: MARGIN },
+    head: [['Metric', 'Value']],
+    body: [
+      ['Average Follow-ups per Lead', `${data.engagementAnalysis.avgFollowupsPerLead}×`],
+      ['Average Calls per Lead',      `${data.engagementAnalysis.avgCallsPerLead}×`],
+      ['Engagement Quality',          data.engagementAnalysis.engagementQuality],
+    ],
+    headStyles:  { fillColor: PURPLE, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+    bodyStyles:  { fontSize: 8, textColor: DARK },
+    alternateRowStyles: { fillColor: BG_LIGHT },
+    columnStyles: { 0: { fontStyle: 'bold' } },
+    styles: { cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2 },
+  })
+  y = (doc as any).lastAutoTable.finalY + 10
+
+  /* Budget */
+  y = sectionHeading('Budget Segment Distribution', y, PURPLE)
+  autoTable(doc, {
+    startY: y,
+    margin: { left: MARGIN, right: MARGIN },
+    head: [['Budget Segment', 'Lead Count', 'Top Segment']],
+    body: Object.entries(data.budgetAnalysis.distribution).map(([seg, cnt]) => [
+      seg, cnt.toLocaleString(), seg === data.budgetAnalysis.topSegment ? '✓ Yes' : '',
+    ]),
+    headStyles:  { fillColor: PURPLE, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+    bodyStyles:  { fontSize: 8, textColor: DARK },
+    alternateRowStyles: { fillColor: BG_LIGHT },
+    styles: { cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2 },
+  })
+
+  /* ─────────── PAGE 3: Problems ─────────── */
+  doc.addPage()
+  doc.setFillColor(...RED)
+  doc.rect(0, 0, W, 14, 'F')
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text(`Identified Problems  (${data.problems.length} issues)`, MARGIN, 9.5)
+  y = 22
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: MARGIN, right: MARGIN },
+    head: [['#', 'Problem ID', 'Title', 'Impact / Description']],
+    body: data.problems.map((p, i) => [i + 1, p.id, p.title, p.impact]),
+    headStyles:  { fillColor: RED, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+    bodyStyles:  { fontSize: 7.5, textColor: DARK },
+    alternateRowStyles: { fillColor: [255, 245, 245] as [number, number, number] },
+    columnStyles: {
+      0: { cellWidth: 8,  halign: 'center' },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 55, fontStyle: 'bold' },
+      3: { cellWidth: 97 },
+    },
+    styles: { cellPadding: 3.5, lineColor: [226, 232, 240], lineWidth: 0.2, overflow: 'linebreak' },
+  })
+
+  /* ─────────── PAGE 4: Actions ─────────── */
+  doc.addPage()
+  doc.setFillColor(...GREEN)
+  doc.rect(0, 0, W, 14, 'F')
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text(`Recommended Actions  (${data.actions.length} items)`, MARGIN, 9.5)
+  y = 22
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: MARGIN, right: MARGIN },
+    head: [['#', 'ID', 'Priority', 'Title', 'Description']],
+    body: data.actions.map((a, i) => [i + 1, a.id, a.priority, a.title, a.description]),
+    headStyles:  { fillColor: GREEN, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+    bodyStyles:  { fontSize: 7.5, textColor: DARK },
+    alternateRowStyles: { fillColor: [240, 253, 244] as [number, number, number] },
+    columnStyles: {
+      0: { cellWidth: 8,  halign: 'center' },
+      1: { cellWidth: 16 },
+      2: { cellWidth: 18, halign: 'center' },
+      3: { cellWidth: 48, fontStyle: 'bold' },
+      4: { cellWidth: 88 },
+    },
+    didDrawCell: (hookData: any) => {
+      if (hookData.section === 'body' && hookData.column.index === 2) {
+        const priority = hookData.cell.raw as string
+        const colors: Record<string, [number, number, number]> = {
+          High: [220, 38, 38], Medium: [217, 119, 6], Low: [5, 150, 105],
+        }
+        doc.setTextColor(...(colors[priority] ?? colors.Low))
+        doc.setFont('helvetica', 'bold')
+        doc.text(
+          priority,
+          hookData.cell.x + hookData.cell.width / 2,
+          hookData.cell.y + hookData.cell.height / 2 + 1,
+          { align: 'center' },
+        )
+      }
+    },
+    styles: { cellPadding: 3.5, lineColor: [226, 232, 240], lineWidth: 0.2, overflow: 'linebreak' },
+  })
+
+  /* ── Footer on every page ── */
+  const pageCount = (doc as any).internal.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...MUTED)
+    doc.text(
+      `CRM Analytics Report  ·  ${fmtDate(lastAnalyzed)}  ·  Page ${i} of ${pageCount}`,
+      W / 2, 290, { align: 'center' },
+    )
+  }
+
+  const ts = lastAnalyzed
+    ? `${lastAnalyzed.getFullYear()}${String(lastAnalyzed.getMonth() + 1).padStart(2, '0')}${String(lastAnalyzed.getDate()).padStart(2, '0')}`
+    : 'report'
+  doc.save(`CRM_Analytics_${ts}.pdf`)
+}
+
+/* ─────────────────────────────────────────────
+   EXPORT BUTTON (dropdown)
+───────────────────────────────────────────── */
+const ExportButton = ({
+  data,
+  lastAnalyzed,
+}: {
+  data: MiningData
+  lastAnalyzed: Date | null
+}) => {
+  const [open,         setOpen]         = useState(false)
+  const [exporting,    setExporting]    = useState<'pdf' | 'excel' | null>(null)
+  const [toast,        setToast]        = useState<string | null>(null)
+  const dropRef = useRef<HTMLDivElement>(null)
+
+  /* Close on outside click */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const showToast = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  const handleExport = async (type: 'pdf' | 'excel') => {
+    setOpen(false)
+    setExporting(type)
+    try {
+      if (type === 'pdf')   await exportToPDF(data, lastAnalyzed)
+      if (type === 'excel') await exportToExcel(data, lastAnalyzed)
+      showToast(type === 'pdf' ? '✓ PDF downloaded' : '✓ Excel downloaded')
+    } catch (err) {
+      console.error('Export error:', err)
+      showToast('Export failed — check console')
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  return (
+    <div ref={dropRef} className="relative">
+      {/* Toast */}
+      {toast && (
+        <div
+          className="absolute z-50 whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-medium text-white"
+          style={{
+            bottom: 42, right: 0,
+            background: toast.startsWith('✓') ? '#059669' : '#dc2626',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            animation: 'dm-chip-in .25s ease both',
+          }}
+        >
+          {toast}
+        </div>
+      )}
+
+      {/* Trigger */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        disabled={!!exporting}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold active:scale-95"
+        style={{
+          background: exporting ? '#e2e8f0' : open ? '#1e3a5f' : '#0f4c75',
+          color: exporting ? '#94a3b8' : 'white',
+          border: '1px solid rgba(255,255,255,0.1)',
+          cursor: exporting ? 'not-allowed' : 'pointer',
+          transition: 'background 150ms',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+        }}
+      >
+        {exporting ? (
+          <>
+            <SpinnerIcon size={10} color="#94a3b8" />
+            Exporting…
+          </>
+        ) : (
+          <>
+            <DownloadIcon />
+            Export
+            <ChevronIcon open={open} />
+          </>
+        )}
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          className="absolute right-0 z-40 rounded-xl overflow-hidden"
+          style={{
+            top: 36,
+            minWidth: 168,
+            background: '#fff',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            animation: 'dm-chip-in .18s ease both',
+          }}
+        >
+          <div className="px-3 py-2" style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <p className="text-[9.5px] font-bold uppercase tracking-widest text-slate-400">
+              Download Report
+            </p>
+          </div>
+          {/* PDF option */}
+          <button
+            onClick={() => handleExport('pdf')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-left"
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#fef2f2')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          >
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(220,38,38,0.09)' }}>
+              <PdfIcon />
+            </div>
+            <div>
+              <p className="text-[11.5px] font-semibold text-slate-800">PDF Report</p>
+              <p className="text-[9.5px] text-slate-400">4-page formatted report</p>
+            </div>
+          </button>
+          {/* Excel option */}
+          <button
+            onClick={() => handleExport('excel')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-left"
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#f0fdf4')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          >
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(5,150,105,0.09)' }}>
+              <ExcelIcon />
+            </div>
+            <div>
+              <p className="text-[11.5px] font-semibold text-slate-800">Excel Workbook</p>
+              <p className="text-[9.5px] text-slate-400">4 sheets · all data</p>
+            </div>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ─────────────────────────────────────────────
    ICONS
 ───────────────────────────────────────────── */
@@ -117,6 +662,45 @@ const SpinnerIcon = ({ size = 14, color = '#0369a1' }) => (
   </svg>
 )
 
+const DownloadIcon = () => (
+  <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="white"
+    strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+)
+
+const ChevronIcon = ({ open }: { open: boolean }) => (
+  <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="white"
+    strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+    style={{ transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}>
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+)
+
+const PdfIcon = () => (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#dc2626"
+    strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
+  </svg>
+)
+
+const ExcelIcon = () => (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#059669"
+    strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="8" y1="13" x2="16" y2="13" />
+    <line x1="8" y1="17" x2="16" y2="17" />
+    <line x1="10" y1="9" x2="10" y2="21" />
+  </svg>
+)
+
 /* ─────────────────────────────────────────────
    BADGE
 ───────────────────────────────────────────── */
@@ -156,7 +740,7 @@ const IdleState = ({ onStart }: { onStart: () => void }) => (
 )
 
 /* ─────────────────────────────────────────────
-   RADAR LOADER — creative AI scanning state
+   RADAR LOADER
 ───────────────────────────────────────────── */
 const AnalyzingState = ({ currentStep }: { currentStep: number }) => {
   const [tick, setTick] = useState(0)
@@ -171,7 +755,6 @@ const AnalyzingState = ({ currentStep }: { currentStep: number }) => {
   const chip1      = SCAN_CHIPS[tick % SCAN_CHIPS.length]
   const chip2      = SCAN_CHIPS[(tick + 3) % SCAN_CHIPS.length]
 
-  /* scattered data dot positions on the radar */
   const dots = [
     { cx: 148, cy: 42,  delay: '0s'    },
     { cx: 44,  cy: 58,  delay: '0.47s' },
@@ -183,11 +766,7 @@ const AnalyzingState = ({ currentStep }: { currentStep: number }) => {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 py-10 select-none">
-
-      {/* ── Radar visualisation ── */}
       <div className="relative mb-7" style={{ width: 180, height: 180 }}>
-
-        {/* concentric grid rings */}
         {[52, 74, 90].map((r, i) => (
           <div key={r} className="absolute rounded-full"
             style={{
@@ -197,14 +776,10 @@ const AnalyzingState = ({ currentStep }: { currentStep: number }) => {
               animationDelay: `${i * 0.9}s`,
             }} />
         ))}
-
-        {/* cross-hair lines (static) */}
         <svg className="absolute inset-0" width="180" height="180" viewBox="0 0 180 180">
           <line x1="90" y1="0" x2="90" y2="180" stroke="rgba(3,105,161,0.07)" strokeWidth="1" />
           <line x1="0" y1="90" x2="180" y2="90" stroke="rgba(3,105,161,0.07)" strokeWidth="1" />
         </svg>
-
-        {/* rotating radar sweep */}
         <div className="absolute inset-0" style={{ animation: 'dm-radar-spin 2.8s linear infinite' }}>
           <svg width="180" height="180" viewBox="0 0 180 180">
             <defs>
@@ -213,14 +788,11 @@ const AnalyzingState = ({ currentStep }: { currentStep: number }) => {
                 <stop offset="100%" stopColor="#0369a1" stopOpacity="0"    />
               </radialGradient>
             </defs>
-            {/* 65° sweep sector */}
             <path d="M90,90 L90,0 A90,90 0 0,1 173.2,45 Z" fill="url(#sweepG)" />
             <line x1="90" y1="90" x2="90" y2="0"
               stroke="#0369a1" strokeWidth="1.2" strokeOpacity="0.4" />
           </svg>
         </div>
-
-        {/* blinking discovered data dots */}
         {dots.map((d, i) => (
           <div key={i} className="absolute rounded-full"
             style={{
@@ -230,8 +802,6 @@ const AnalyzingState = ({ currentStep }: { currentStep: number }) => {
               animationDelay: d.delay,
             }} />
         ))}
-
-        {/* pulsing center core */}
         <div className="absolute flex items-center justify-center rounded-full"
           style={{
             width: 44, height: 44, top: 68, left: 68,
@@ -242,16 +812,10 @@ const AnalyzingState = ({ currentStep }: { currentStep: number }) => {
           <div className="rounded-full" style={{ width: 12, height: 12, background: '#0369a1', opacity: 0.65 }} />
         </div>
       </div>
-
-      {/* status text */}
-      <p className="text-[13.5px] font-semibold text-slate-800 mb-1 text-center">
-        Scanning your CRM
-      </p>
+      <p className="text-[13.5px] font-semibold text-slate-800 mb-1 text-center">Scanning your CRM</p>
       <p className="text-[11.5px] text-slate-400 mb-5 text-center" style={{ minHeight: 18 }}>
         {activeStep?.label ?? 'Processing…'}
       </p>
-
-      {/* cycling data chips */}
       <div className="flex gap-2 mb-6" style={{ height: 28 }}>
         {[chip1, chip2].map((chip, i) => (
           <span key={`${chip}-${tick}-${i}`}
@@ -267,8 +831,6 @@ const AnalyzingState = ({ currentStep }: { currentStep: number }) => {
           </span>
         ))}
       </div>
-
-      {/* progress */}
       <div className="w-full" style={{ maxWidth: 256 }}>
         <div className="flex justify-between items-center mb-1.5">
           <span className="text-[10px] text-slate-400">Step {currentStep} of {STEPS.length}</span>
@@ -306,8 +868,6 @@ const OverviewTab = ({ data }: { data: MiningData }) => {
   return (
     <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4"
       style={{ scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}>
-
-      {/* Health banner */}
       <div className="rounded-xl border p-4"
         style={{ background: hs.bg, borderColor: `${hs.dot}28` }}>
         <div className="flex items-center gap-2 mb-2">
@@ -321,8 +881,6 @@ const OverviewTab = ({ data }: { data: MiningData }) => {
           {data.summary.overview}
         </p>
       </div>
-
-      {/* KPI grid */}
       <div className="grid grid-cols-2 gap-2.5">
         {kpis.map(k => (
           <div key={k.label} className="bg-white border border-slate-100 rounded-xl p-3.5"
@@ -332,13 +890,9 @@ const OverviewTab = ({ data }: { data: MiningData }) => {
           </div>
         ))}
       </div>
-
-      {/* Top performers */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">Top performers</p>
         <div className="flex flex-col gap-2">
-
-          {/* Campaign */}
           <div className="bg-white border border-slate-100 rounded-xl p-3.5"
             style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <div className="flex items-center justify-between mb-2.5">
@@ -362,8 +916,6 @@ const OverviewTab = ({ data }: { data: MiningData }) => {
               ))}
             </div>
           </div>
-
-          {/* City */}
           <div className="bg-white border border-slate-100 rounded-xl p-3.5"
             style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <div className="flex items-center justify-between mb-1">
@@ -403,8 +955,6 @@ const FunnelTab = ({ data }: { data: MiningData }) => {
   return (
     <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4"
       style={{ scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}>
-
-      {/* Funnel stages */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">Lead stages</p>
         <div className="bg-white border border-slate-100 rounded-xl overflow-hidden"
@@ -432,8 +982,6 @@ const FunnelTab = ({ data }: { data: MiningData }) => {
           })}
         </div>
       </div>
-
-      {/* Engagement */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">Engagement</p>
         <div className="grid grid-cols-3 gap-2">
@@ -450,8 +998,6 @@ const FunnelTab = ({ data }: { data: MiningData }) => {
           ))}
         </div>
       </div>
-
-      {/* Budget */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">Budget distribution</p>
         <div className="bg-white border border-slate-100 rounded-xl p-4 flex flex-col gap-3"
@@ -607,8 +1153,6 @@ const AnalyticsAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
       {/* ══ SIDEBAR ══ */}
       <div className="flex flex-col border-r"
         style={{ width: 204, minWidth: 204, borderColor: '#eaecf0', background: '#fff' }}>
-
-        {/* Branding */}
         <div className="px-4 pt-4 pb-3 flex-shrink-0" style={{ borderBottom: '0.5px solid #f1f5f9' }}>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center"
@@ -620,8 +1164,6 @@ const AnalyticsAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
             </div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Mining</span>
           </div>
-
-          {/* Status pill */}
           <div className="flex items-center gap-2 rounded-lg px-2.5 py-2"
             style={
               phase === 'analyzing' ? { background: '#f0f9ff', border: '1px solid #bae6fd' } :
@@ -703,14 +1245,18 @@ const AnalyticsAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                 <p className="text-[13px] font-semibold text-slate-800">{tab.label}</p>
                 <p className="text-[10.5px] text-slate-400">{tabCount(activeTab)} items · {fmtTime(lastAnalyzed)}</p>
               </div>
-              <button onClick={runAnalysis}
-                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-[11px] font-semibold active:scale-95"
-                style={{ background: '#0369a1', border: 'none', cursor: 'pointer', transition: 'background 150ms' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#075985')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#0369a1')}>
-                <RefreshIcon />
-                Re-analyse
-              </button>
+              {/* Action buttons */}
+              <div className="ml-auto flex items-center gap-2">
+                <ExportButton data={data} lastAnalyzed={lastAnalyzed} />
+                <button onClick={runAnalysis}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-[11px] font-semibold active:scale-95"
+                  style={{ background: '#0369a1', border: 'none', cursor: 'pointer', transition: 'background 150ms' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#075985')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '#0369a1')}>
+                  <RefreshIcon />
+                  Re-analyse
+                </button>
+              </div>
             </div>
 
             {/* Content */}

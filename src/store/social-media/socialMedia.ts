@@ -174,13 +174,13 @@ export const getFacebookScheduledPosts = async (params:string) => {
 
 
 
-export const runAutoSocialAgent = async (data:AutoSocialAgentData) => {
+export const runAutoSocialAgent = async (formData: FormData) => {
     try {
         const response = await fetch(API_ROUTES.SOCIALMEDIA.AUTOSOCIALAGENT.RUN,
             {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
+  /*               headers: { "Content-Type": "application/json" }, */
+                body: formData,
                 credentials: "include"
             }
         );

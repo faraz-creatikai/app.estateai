@@ -90,6 +90,12 @@ export const API_ROUTES = {
     UPDATE: (id: string) => `${BASE_URL}/task/${id}`,
     DELETE: `${BASE_URL}/task`,
   },
+  NOTIFICATIONS:{
+    GET_ALL: `${BASE_URL}/notifications`,
+    GET_BY_PARAMS: (params: string) => `${BASE_URL}/notifications?${params}`,
+    MARK_READ: (id: string) => `${BASE_URL}/notifications/mark-read/${id}`,
+    MARK_ALL_READ: `${BASE_URL}/notifications/mark-all-read`,
+  },
   AIAGENT: {
     GET_ALL: `${BASE_URL}/aiagent`,
     GET_BY_ID: (id: string) => `${BASE_URL}/aiagent/${id}`,

@@ -1741,6 +1741,7 @@ export default function Customer() {
 
   return (
     <ProtectedRoute>
+      
       {/* whatsapp all popup */}
       <Toaster position="top-right" />
       {isWhatsappAllOpen && selectedCustomers.length > 0 && (
@@ -2125,6 +2126,7 @@ export default function Customer() {
                     </div>
                   )}
                 </button>
+                
 
                 {/* WARM */}
                 <button

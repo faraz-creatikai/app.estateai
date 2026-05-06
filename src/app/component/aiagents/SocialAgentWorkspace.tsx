@@ -281,6 +281,23 @@ const SocialAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const [imageFile, setImageFile] = useState<File | null>(null)
+    const [imagePreview, setImagePreview] = useState<string>("")
+
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setImageFile(file)
+        setImagePreview(URL.createObjectURL(file))
+        if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+
+    const clearImage = () => {
+        setImageFile(null)
+        setImagePreview("")
+    }
+
     // default scheduled time = 1 hour from now
     useEffect(() => {
         if (!isOpen) return
@@ -333,11 +350,21 @@ const SocialAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
         }, 1800)
 
         try {
-            const res: any = await runAutoSocialAgent({
+            const formData = new FormData()
+            formData.append("platform", platform)
+            formData.append("content", userMsg)
+            formData.append("scheduledTime", new Date(scheduledTime).toISOString());
+
+            if (imageFile) {
+                formData.append("PostImage", imageFile)
+            }
+
+            const res: any = await runAutoSocialAgent(formData);
+            /* const res: any = await runAutoSocialAgent({
                 platform,
                 content: userMsg,
                 scheduledTime: new Date(scheduledTime).toISOString(),
-            })
+            }) */
 
             clearInterval(stepTimer)
             setCurrentStep("")
@@ -349,6 +376,9 @@ const SocialAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                     agentSummary: res.agentSummary,
                     scheduledTime: res.scheduledTime,
                 }])
+                // clear image state after successful send
+                setImageFile(null)
+                setImagePreview("")
             } else {
                 setMessages(prev => [...prev, {
                     role: "ai",
@@ -471,13 +501,13 @@ const SocialAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                                     style={{ background: "#f8fafc", borderColor: "#e2e8f0", color: "#64748b" }}
                                     onMouseEnter={e => {
                                         (e.currentTarget as HTMLElement).style.background = "#f0f9ff"
-                                        ;(e.currentTarget as HTMLElement).style.borderColor = "#bae6fd"
-                                        ;(e.currentTarget as HTMLElement).style.color = "#0284c7"
+                                            ; (e.currentTarget as HTMLElement).style.borderColor = "#bae6fd"
+                                            ; (e.currentTarget as HTMLElement).style.color = "#0284c7"
                                     }}
                                     onMouseLeave={e => {
                                         (e.currentTarget as HTMLElement).style.background = "#f8fafc"
-                                        ;(e.currentTarget as HTMLElement).style.borderColor = "#e2e8f0"
-                                        ;(e.currentTarget as HTMLElement).style.color = "#64748b"
+                                            ; (e.currentTarget as HTMLElement).style.borderColor = "#e2e8f0"
+                                            ; (e.currentTarget as HTMLElement).style.color = "#64748b"
                                     }}
                                 >
                                     {h}
@@ -709,6 +739,49 @@ const SocialAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                                             <ClearIcon /> Clear
                                         </button>
                                     )}
+                                    {/* ── image upload ── */}
+                                    <>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleImageSelect}
+                                        />
+                                        {imagePreview ? (
+                                            <div className="flex items-center gap-1">
+                                                <img
+                                                    src={imagePreview}
+                                                    alt="upload preview"
+                                                    className="rounded-lg object-cover border flex-shrink-0"
+                                                    style={{ width: 32, height: 32, borderColor: "#e2e8f0" }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={clearImage}
+                                                    className="flex items-center"
+                                                    style={{ color: "#cbd5e1" }}
+                                                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "#f87171"}
+                                                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "#cbd5e1"}
+                                                    title="Remove image"
+                                                >
+                                                    <ClearIcon />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="flex items-center gap-0.5 text-[9.5px] transition-colors"
+                                                style={{ color: "#cbd5e1" }}
+                                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "#0284c7"}
+                                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "#cbd5e1"}
+                                                title="Attach image (optional)"
+                                            >
+                                                <ImageIcon /> Image
+                                            </button>
+                                        )}
+                                    </>
                                 </div>
                                 <span className="text-[9px] font-mono" style={{ color: "#cbd5e1" }}>↵ send</span>
                             </div>
