@@ -393,3 +393,71 @@ export const deleteCallLog = async (id: string) => {
     return null;
   }
 }
+
+
+//DEAL CLOSING
+export const getClosedDeals = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.GETCLOSEDDEAL, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+export const getFilteredClosedDeals = async (params: string) => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.GET_CLOSEDDEAL_BY_PARAMS(params), { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(" params : ", params,"\n"," Data:", data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+export const closeCustomerDeal = async (id: string) => { 
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.CLOSEDEAL(id),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include"
+      }
+    );
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+export const reopenDeal = async (id: string) => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.REOPENDEAL(id),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include"
+      }
+    );
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}

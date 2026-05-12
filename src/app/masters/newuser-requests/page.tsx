@@ -34,37 +34,19 @@ export default function NewUserRequests() {
     const [currentTablePage, setCurrentTablePage] = useState(1);
     const [rowsPerTablePage, setRowsPerTablePage] = useState(10);
     const router = useRouter();
-
-    const fetchTypes = async () => {
-        const data = await getRequestUsers();
-        /* const formatted = data.map((t: userrequestGetDataInterface) => ({
-               ...t,
-               name: t.name.charAt(0).toUpperCase() + t.name.slice(1),
-               email: t.email.charAt(0).toUpperCase() + t.email.slice(1),
-             })); */
-        const formatted = [
-            {
-                _id: "123",
-                name: "jangir",
-                email: "jangir@example.com"
-            },
-            {
-                _id: "456",
-                name: "aman",
-                email: "amanr@example.com"
-            }
-        ]
-        console.log(" data is ",data)
-        setUsers(data.map((e:any)=>{
-            return {
-                _id:e?.id,
-                name:e?.name,
-                email:e?.email,
-                phone:e?.phone
-            }
-        }))
-    };
-
+const fetchTypes = async () => {
+    const data = await getRequestUsers();
+    console.log("data is", data);
+    
+    if (!data) return;  // ✅ guard against null
+    
+    setUsers(data.map((e: any) => ({
+        _id:   e?.id,
+        name:  e?.name,
+        email: e?.email,
+        phone: e?.phone,
+    })));
+};
     useEffect(() => {
         fetchTypes();
     }, []);

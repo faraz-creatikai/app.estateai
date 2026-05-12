@@ -9,6 +9,7 @@ import {
 } from "@/store/notifications/notifications";
 import { Notification } from "@/store/notifications/notifications.interface";
 import { getTypeConfig, getTypeLink } from "@/store/notifications/notifications.utils";
+import { getSocket } from "@/socket/socket";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,7 @@ function NotificationCard({
   onNavigate: (n: Notification) => void;
   isLast: boolean;
 }) {
-  const cfg  = getTypeConfig(notification.type);
+  const cfg = getTypeConfig(notification.type);
   const link = getTypeLink(notification.type, notification.entityId);
   const isUnread = !notification.isRead;
 
@@ -207,13 +208,13 @@ function NotificationCard({
 export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [pagination, setPagination]       = useState<Pagination>({ total: 0, page: 1, limit: LIMIT });
-  const [filter, setFilter]               = useState<FilterMode>("all");
-  const [loading, setLoading]             = useState(true);
-  const [markingAll, setMarkingAll]       = useState(false);
+  const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: LIMIT });
+  const [filter, setFilter] = useState<FilterMode>("all");
+  const [loading, setLoading] = useState(true);
+  const [markingAll, setMarkingAll] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
-  const totalPages  = Math.ceil(pagination.total / LIMIT);
+  const totalPages = Math.ceil(pagination.total / LIMIT);
 
   // Group notifications by date
   const groupedNotifications = notifications.reduce<Record<string, Notification[]>>((acc, n) => {
@@ -225,16 +226,16 @@ export default function NotificationsPage() {
 
   const GROUP_ORDER = ["Today", "Yesterday", "This Week", "This Month", "Earlier"];
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-
+  // ── existing REST fetch ────────────────────────────────────────────
   const fetchNotifications = useCallback(async (page: number, mode: FilterMode) => {
     setLoading(true);
     const params = new URLSearchParams({
-      page:  String(page),
+      page: String(page),
       limit: String(LIMIT),
       ...(mode === "unread" && { unreadOnly: "true" }),
     }).toString();
 
+    // ✅ AFTER
     const res = await getFilteredNotifications(params);
     if (res?.success) {
       setNotifications(res.data);
@@ -246,6 +247,28 @@ export default function NotificationsPage() {
   useEffect(() => {
     fetchNotifications(1, filter);
   }, [filter, fetchNotifications]);
+
+
+  // ── socket listener ────────────────────────────────────────────────
+useEffect(() => {
+  const socket = getSocket();
+  if (!socket) return;
+
+// In Navbar handleNewNotification
+const handleNewNotification = (notification: Notification) => {
+  const safe = {
+    ...notification,
+    id: notification.id ?? `temp-${Date.now()}-${Math.random()}`,
+    createdAt: notification.createdAt ?? new Date().toISOString(),
+  };
+  setNotifications((prev) => [safe, ...prev]);
+};
+
+  socket.on("notification", handleNewNotification);
+  return () => { socket.off("notification", handleNewNotification); };
+}, [filter]); // ✅ re-register when filter changes so closure is fresh
+
+
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -447,10 +470,10 @@ export default function NotificationsPage() {
                     <span key={`ellipsis-${i}`} className="px-2 py-1.5 text-xs text-[var(--color-gray)]">…</span>
                   ) : (
                     <button
-                      key={p}
+                      key={`page-${p}`}  // ✅ prefix so it's always a unique string
                       onClick={() => handlePageChange(p as number)}
                       className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all duration-150
-                        ${pagination.page === p
+        ${pagination.page === p
                           ? "bg-[var(--color-primary)] text-white shadow-sm"
                           : "text-[var(--color-gray)] hover:bg-[var(--color-primary-lighter)] hover:text-[var(--color-primary)] bg-white border border-[var(--color-muted)]"
                         }`}

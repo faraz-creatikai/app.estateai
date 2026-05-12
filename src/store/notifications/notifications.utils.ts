@@ -2,7 +2,7 @@
 // Edit this file to update icons, colors, and links across ALL pages.
 
 import { ComponentType, ReactNode } from "react";
-import { BsFillPersonPlusFill } from "react-icons/bs";
+import { BsFillPersonPlusFill, BsFillStopwatchFill } from "react-icons/bs";
 import { IoPersonSharp } from "react-icons/io5";
 import { RiUserFollowFill } from "react-icons/ri";
 
@@ -12,6 +12,7 @@ const map: Record<string, IconType> = {
   CUSTOMER_CREATED: IoPersonSharp,
   NEW_USER_REQUEST: RiUserFollowFill,
   CUSTOMER_FOLLOWUP_TAKEN: RiUserFollowFill,
+  FOLLOWUP_DUE: BsFillStopwatchFill,
   ORDER_PLACED: "🛒",
   PAYMENT_RECEIVED: "💳",
   ALERT: "⚠️",
@@ -44,6 +45,11 @@ export function getTypeConfig(type: string): TypeConfig {
       icon:  BsFillPersonPlusFill,
       color: "text-sky-600",
       bg:    "bg-sky-50",
+    },
+    FOLLOWUP_DUE:{
+      icon:  BsFillStopwatchFill,
+      color: "text-[var(--color-secondary)]",
+      bg:    "bg-[var(--color-secondary-lighter)]",
     },
     ORDER_PLACED: {
       icon:  "🛒",
@@ -79,13 +85,14 @@ export function getTypeConfig(type: string): TypeConfig {
  */
 export function getTypeLink(type: string, entityId: string): string | null {
   switch (type) {
-    case "CUSTOMER_CREATED":  return `/customers/${entityId}`;
+    case "CUSTOMER_CREATED":  return `/customer/${entityId}`;
     case "CUSTOMER_FOLLOWUP_TAKEN":  return `/followups/customer`;
     case "NEW_USER_REQUEST":  return `/masters/newuser-requests`;
     case "ORDER_PLACED":      return `/orders/${entityId}`;
     case "PAYMENT_RECEIVED":  return `/payments/${entityId}`;
     case "ALERT":             return `/alerts`;
     case "ERROR":             return `/logs`;
+    case "FOLLOWUP_DUE":      return `/followups/customer`;
     default:                  return null;
   }
 }

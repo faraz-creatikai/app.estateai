@@ -19,6 +19,8 @@ import {
   markAllNotificationsRead,
 } from "@/store/notifications/notifications";
 import { getTypeIcon, getTypeLink } from "@/store/notifications/notifications.utils";
+import { getSocket, initSocket } from "@/socket/socket";
+import NotificationToast, { TOAST_DURATION } from "./popups/Notificationtoast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,7 +101,7 @@ function NotificationRow({
             ${isUnread ? "font-semibold text-gray-900" : "font-medium text-gray-400"}`}>
             {n.title}
           </p>
-          <span className={`text-[10px] shrink-0 font-medium tabular-nums
+          <span className={`text-[10px] max-sm:hidden shrink-0 font-medium tabular-nums
             ${isUnread ? "text-[var(--color-gray)]" : "text-gray-300"}`}>
             {timeAgo(n.createdAt)}
           </span>
@@ -111,17 +113,24 @@ function NotificationRow({
         </p>
 
         <div className="flex items-center justify-between mt-1.5">
-          {/* Entity tag */}
-          <span className={`
+          <div className=" flex items-center justify-between w-full">
+            {/* Entity tag */}
+            <span className={`
             inline-flex items-center px-1.5 py-0.5 rounded-[4px]
             text-[9px] font-bold uppercase tracking-wider
             ${isUnread
-              ? "bg-[var(--color-primary-lighter)] text-[var(--color-primary-dark)] border border-[var(--color-primary-light)]"
-              : "bg-gray-100 text-gray-300 border border-gray-200"
-            }
+                ? "bg-[var(--color-primary-lighter)] text-[var(--color-primary-dark)] border border-[var(--color-primary-light)]"
+                : "bg-gray-100 text-gray-300 border border-gray-200"
+              }
           `}>
-            {n.entityType}
-          </span>
+              {n.entityType}
+            </span>
+            <span className={`text-[10px] sm:hidden shrink-0 font-medium tabular-nums
+            ${isUnread ? "text-[var(--color-gray)]" : "text-gray-300"}`}>
+              {timeAgo(n.createdAt)}
+            </span>
+            </div>
+
 
           {/* Hover hint + mark-read */}
           <div className="flex items-center gap-2">
@@ -179,16 +188,19 @@ export default function Navbar() {
   const { admin, logout } = useAuth();
 
   const notificationsRef = useRef<HTMLLIElement>(null);
-  const quickAddRef      = useRef<HTMLLIElement>(null);
-  const adminMailRef     = useRef<HTMLLIElement>(null);
+  const quickAddRef = useRef<HTMLLIElement>(null);
+  const adminMailRef = useRef<HTMLLIElement>(null);
   const { dark, toggleTheme } = useThemeCustom();
+
 
   // ── Notification state ──────────────────────────────────────────────────────
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notiLoading, setNotiLoading]     = useState(false);
+  const [notiLoading, setNotiLoading] = useState(false);
+  const [toastNotification, setToastNotification] = useState<Notification | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
-  const topFive     = notifications.filter((n) => !n.isRead).slice(0, 5);
+  const topFive = notifications.filter((n) => !n.isRead).slice(0, 5);
 
   const fetchNotifications = useCallback(async () => {
     setNotiLoading(true);
@@ -197,6 +209,7 @@ export default function Navbar() {
     setNotiLoading(false);
   }, []);
 
+  // Fetch notifications on mount
   useEffect(() => {
     (async () => {
       const res = await getMyNotifications();
@@ -207,6 +220,36 @@ export default function Navbar() {
   useEffect(() => {
     if (openMenu === "notifications") fetchNotifications();
   }, [openMenu, fetchNotifications]);
+
+  // ── socket listener ────────────────────────────────────────────────
+  // In Navbar — replace the socket effect with this
+  useEffect(() => {
+    if (!admin?._id) return;
+
+    const socket = initSocket(admin._id);  // ← init + get in one call
+    console.log("✅ got socket in Navbar:", socket);
+
+    const handleNewNotification = (notification: Notification) => {
+      setNotifications((prev) => [notification, ...prev]);
+
+      // show toast
+      setToastNotification(notification);
+
+      // clear previous timer if exists
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+
+      // auto close after 5 seconds
+      toastTimerRef.current = setTimeout(() => {
+        setToastNotification(null);
+      }, TOAST_DURATION * 1000);
+    };
+
+    socket.on("notification", handleNewNotification);
+    return () => {
+      socket.off("notification", handleNewNotification);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, [admin?._id]);              // ← re-runs when admin becomes available
 
   const handleMarkRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -237,18 +280,18 @@ export default function Navbar() {
 
   // ── Quick adds ──────────────────────────────────────────────────────────────
   const quickadds = [
-    { name: "Add References",        link: "/masters/references/add" },
-    { name: "Add City",              link: "/masters/city/add" },
-    { name: "Add Location",          link: "/masters/locations/add" },
-    { name: "Add Functional Area",   link: "/masters/functional-areas/add" },
-    { name: "Add Industry",          link: "/masters/industries/add" },
-    { name: "Add Campaign",          link: "/masters/campaign/add" },
-    { name: "Add Income",            link: "/masters/incomes/add" },
-    { name: "Add Expenses",          link: "/masters/expenses/add" },
-    { name: "Add Status Type",       link: "/masters/status-type/add" },
-    { name: "Add Mail Template",     link: "/masters/mail-templates/add" },
+    { name: "Add References", link: "/masters/references/add" },
+    { name: "Add City", link: "/masters/city/add" },
+    { name: "Add Location", link: "/masters/locations/add" },
+    { name: "Add Functional Area", link: "/masters/functional-areas/add" },
+    { name: "Add Industry", link: "/masters/industries/add" },
+    { name: "Add Campaign", link: "/masters/campaign/add" },
+    { name: "Add Income", link: "/masters/incomes/add" },
+    { name: "Add Expenses", link: "/masters/expenses/add" },
+    { name: "Add Status Type", link: "/masters/status-type/add" },
+    { name: "Add Mail Template", link: "/masters/mail-templates/add" },
     { name: "Add Whatsapp Template", link: "/masters/whatsapp-templates/add" },
-    { name: "Add Payment Method",    link: "/masters/payment-methods/add" },
+    { name: "Add Payment Method", link: "/masters/payment-methods/add" },
   ];
 
   // ── Outside click ───────────────────────────────────────────────────────────
@@ -256,8 +299,8 @@ export default function Navbar() {
     const handleClickOutside = (e: MouseEvent) => {
       if (
         notificationsRef.current && !notificationsRef.current.contains(e.target as Node) &&
-        quickAddRef.current      && !quickAddRef.current.contains(e.target as Node) &&
-        adminMailRef.current     && !adminMailRef.current.contains(e.target as Node)
+        quickAddRef.current && !quickAddRef.current.contains(e.target as Node) &&
+        adminMailRef.current && !adminMailRef.current.contains(e.target as Node)
       ) setOpenMenu(null);
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -278,8 +321,16 @@ export default function Navbar() {
 
   return (
     <ProtectedRoute>
+      {/* ── Notification Toast ───────────────────────────────────────── */}
+      <NotificationToast
+        notification={toastNotification}
+        onClose={() => {
+          setToastNotification(null);
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        }}
+      />
       <div className="flex justify-end items-center bg-white max-sm:bg-[var(--color-primary)] max-sm:text-white text-gray-800">
-        <button onClick={toggleTheme} className="p-2 rounded-md hover:bg-gray-100 transition-colors">
+        <button onClick={toggleTheme} className="p-2 max-sm:hidden rounded-md hover:bg-gray-100 hover:text-[var(--color-primary)] transition-colors">
           {dark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
@@ -287,35 +338,37 @@ export default function Navbar() {
           <ul className="flex">
 
             {/* ── Notifications ───────────────────────────────────────────── */}
-            <li ref={notificationsRef} className="grid place-items-center relative max-md:hidden">
+            <li ref={notificationsRef} className="grid place-items-center relative ">
               {/* Bell trigger */}
               <div
                 className={`
                   relative grid place-items-center w-full h-full cursor-pointer
-                  p-3 rounded-lg mx-1 transition-colors duration-150
-                  ${openMenu === "notifications" ? "bg-[var(--color-primary-lighter)] text-[var(--color-primary)]" : "text-gray-600 hover:bg-gray-100"}
+                  p-3 rounded-lg mx-1 transition-colors duration-150 hover:bg-[var(--color-primary-lighter)]  hover:text-[var(--color-primary)]
+                  ${openMenu === "notifications" ? "" : "text-gray-600 max-sm:text-white "}
                 `}
                 onClick={() => setOpenMenu(openMenu === "notifications" ? null : "notifications")}
                 onMouseEnter={() => setOpenMenu("notifications")}
               >
                 <IoMdNotificationsOutline className="text-xl" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 min-w-[15px] h-[15px] px-[3px] flex items-center justify-center rounded-full text-[8px] font-bold bg-[var(--color-primary)] text-white ring-[1.5px] ring-white pointer-events-none">
+                  <span className="absolute top-1.5 right-1.5 min-w-[15px] h-[15px] px-[3px] flex items-center justify-center rounded-full text-[8px] font-bold bg-[var(--color-primary)] max-sm:bg-white max-sm:text-[var(--color-primary)] text-white ring-[1.5px] ring-white pointer-events-none">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
               </div>
 
+
               {/* Dropdown */}
               <div
-                className={`absolute top-[52px] right-0 z-50 ${transitionClasses} ${
-                  openMenu === "notifications"
+                className={`absolute top-[52px] z-50 right-0 md:-left-10 max-sm:fixed max-sm:top-[56px] max-sm:left-4 max-sm:right-4
+    ${transitionClasses}
+    ${openMenu === "notifications"
                     ? "opacity-100 scale-100 pointer-events-auto"
                     : "opacity-0 scale-95 pointer-events-none"
-                }`}
+                  }`}
               >
                 {/* Panel */}
-                <div className="w-[340px] max-md:w-[300px] bg-white rounded-2xl border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.10),0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden">
+                <div className="sm:w-[340px] w-full bg-white rounded-2xl border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.10),0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden">
 
                   {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100">
@@ -399,9 +452,8 @@ export default function Navbar() {
                 {openMenu === "quickAdd" ? <MdKeyboardArrowUp /> : <MdKeyboardArrowDown />}
               </div>
               <div
-                className={`absolute top-[56px] right-0 z-50 max-md:right-[-70px] ${transitionClasses} ${
-                  openMenu === "quickAdd" ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
-                }`}
+                className={`absolute top-[56px] right-0 z-50 max-md:right-[-70px] ${transitionClasses} ${openMenu === "quickAdd" ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+                  }`}
                 style={{ zIndex: 1000 }}
               >
                 <PopUps>
@@ -420,7 +472,7 @@ export default function Navbar() {
             {/* ── Admin Mail ───────────────────────────────────────────────── */}
             <li ref={adminMailRef} className="flex items-center relative cursor-pointer gap-2">
               <div
-                className="flex items-center gap-2 w-full h-full text-gray-800 max-sm:text-white p-4 max-md:p-2 hover:bg-gray-100"
+                className="flex items-center gap-2 w-full h-full text-gray-800 max-sm:text-white p-4 max-md:p-2 hover:bg-gray-100 hover:text-[var(--color-primary)]"
                 onClick={() => setOpenMenu(openMenu === "adminMail" ? null : "adminMail")}
                 onMouseEnter={() => setOpenMenu("adminMail")}
               >
@@ -428,9 +480,8 @@ export default function Navbar() {
                 {openMenu === "adminMail" ? <MdKeyboardArrowUp /> : <MdKeyboardArrowDown />}
               </div>
               <div
-                className={`absolute top-[56px] z-50 right-0 max-md:right-[-40px] ${transitionClasses} ${
-                  openMenu === "adminMail" ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
-                }`}
+                className={`absolute top-[56px] z-50 right-0 max-md:right-[-40px] ${transitionClasses} ${openMenu === "adminMail" ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+                  }`}
                 style={{ zIndex: 1000 }}
               >
                 <PopUps>
@@ -450,7 +501,7 @@ export default function Navbar() {
             </li>
 
             {/* ── Logout ───────────────────────────────────────────────────── */}
-            <li className="grid place-items-center relative cursor-pointer text-xl p-4 max-md:px-2 hover:bg-gray-100" onClick={logoutDashboard}>
+            <li className="grid place-items-center relative cursor-pointer text-xl p-4 max-md:px-2 hover:bg-gray-100 hover:text-[var(--color-primary)]" onClick={logoutDashboard}>
               <CiLogout />
             </li>
 

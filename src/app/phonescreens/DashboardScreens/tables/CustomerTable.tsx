@@ -128,7 +128,7 @@ export default function CustomerTable<T extends Record<string, any>>({
                             images={
                                 viewLeadData?.CustomerImage?.length
                                     ? viewLeadData.CustomerImage
-                                    : ["/workbyhomeicon.jpeg"]
+                                    : ["/siteplan2.png"]
                             }
                         />
                         <div className="max-h-[calc(80vh-240px)] absolute top-[380px] w-full bg-white dark:bg-[var(--color-childbgdark)] overflow-y-auto px-4 py-6 rounded-t-3xl">
@@ -231,13 +231,13 @@ export default function CustomerTable<T extends Record<string, any>>({
 
                                 {/* Thumbnail */}
                                 <div
-                                    className="w-[72px] h-[56px] rounded-xl overflow-hidden bg-gray-100 dark:bg-[var(--color-secondary-darker)] border border-gray-200 dark:border-white/10 flex items-center justify-center cursor-pointer shrink-0"
+                                    className="w-[72px] h-[56px] rounded-xl overflow-hidden bg-gray-200 text-white dark:bg-[var(--color-secondary-darker)] border border-gray-200 dark:border-white/10 flex items-center justify-center cursor-pointer shrink-0"
                                     onClick={() => { setViewAll(true); setViewLeadData(lead); }}
                                 >
                                     <img
                                         width={72}
-                                        className={lead.SitePlan?.length > 0 ? "w-full h-full object-cover" : "w-8 h-8 opacity-40"}
-                                        src={lead.SitePlan?.length > 0 ? lead.SitePlan : "/workbyhomeicon.jpeg"}
+                                        className={lead.SitePlan?.length > 0 ? "w-full h-full object-cover" : "w-8 h-8 opacity-100"}
+                                        src={lead.SitePlan?.length > 0 ? lead.SitePlan : "/siteplan2.png"}
                                     />
                                 </div>
 

@@ -42,6 +42,11 @@ export const API_ROUTES = {
     GETCALLLOGS: `${BASE_URL}/customer/getcalllogs`,
     GETCALLREPORT: `${BASE_URL}/customer/get-call-report`,
     DELETECALLLOG: (id: string) => `${BASE_URL}/customer/delete-calllog/${id}`,
+
+    GETCLOSEDDEAL: `${BASE_URL}/customer/closed-deals`,
+    GET_CLOSEDDEAL_BY_PARAMS: (params: string) => `${BASE_URL}/customer/closed-deals?${params}`,
+    CLOSEDEAL: (id: string) => `${BASE_URL}/customer/close-deal/${id}`,
+    REOPENDEAL: (id: string) => `${BASE_URL}/customer/reopen-deal/${id}`,
   },
   COMPANYPROJECTS: {
     GET_ALL: `${BASE_URL}/com/pro`,
@@ -432,3 +437,5 @@ export const API_ROUTES = {
     DENYREQUEST: (id: String) => `${BASE_URL}/user/newusers/${id}`
   }
 };
+
+export const API_URL = "https://appapi.estateai.in";

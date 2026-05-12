@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Navbar from "@/app/component/Nav";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -13,9 +13,19 @@ import { Separator } from "@/components/ui/separator";
 import ProtectedRoute from "@/app/component/ProtectedRoutes";
 import MobileHamburger from "@/app/component/HamburgerMenu";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { disconnectSocket, initSocket } from "@/socket/socket";
 
 export default function AppLayoutClient({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const {admin} = useAuth();
+
+    useEffect(() => {
+    if (!admin?._id) return;
+    console.log("admin id in AppLayoutClient: ", admin._id);
+    initSocket(admin._id);
+    return () => disconnectSocket();
+  }, [admin?._id]);
 
   const isAdminPage =
     pathname === "/admin" ||

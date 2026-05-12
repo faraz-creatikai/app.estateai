@@ -57,7 +57,7 @@ const FollowupAddDialog = ({ isOpen, onClose, customerId }: Props) => {
     const newErrors: ErrorInterface = {};
     if (!formData.StartDate) newErrors.StartDate = "Start Date is required";
     if (!formData.StatusType) newErrors.StatusType = "Status is required";
-    /* if (!formData.FollowupNextDate)
+   /*  if (!formData.FollowupNextDate)
       newErrors.FollowupNextDate = "Next Date is required"; */
     if (!formData.Description)
       newErrors.Description = "Description is required";
