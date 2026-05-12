@@ -59,7 +59,7 @@ export default function CustomerFollowupAdd() {
     const newErrors: ErrorInterface = {};
     if (!followupData.StartDate.trim()) newErrors.StartDate = "Start Date is required";
     if (!followupData.StatusType.trim()) newErrors.StatusType = "Status Type is required";
-    if (!followupData.FollowupNextDate.trim()) newErrors.FollowupNextDate = "Followup Next Date is required";
+   /*  if (!followupData.FollowupNextDate.trim()) newErrors.FollowupNextDate = "Followup Next Date is required"; */
     if (!followupData.Description.trim()) newErrors.Description = "Description is required";
     return newErrors;
   };
