@@ -7,7 +7,7 @@ export interface salesScriptGetDataInterface {
     Status:string;
     mode: string;
     metadata:any;
-    created:string;
+    createdAt:string;
 }
 
 export interface salesScriptDialogDataInterface {
