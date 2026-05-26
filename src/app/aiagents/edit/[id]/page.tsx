@@ -37,6 +37,7 @@ const SUB_TYPES: Record<string, string[]> = {
     Mining: ["Customer Segmentation", "Churn Analysis", "Sales Forecasting", "Behavioral Analytics", "Risk Assessment"],
     Analytics: ["Customer Segmentation", "Churn Analysis", "Sales Forecasting", "Behavioral Analytics", "Risk Assessment"],
     Social: ["Content Creation", "Post Scheduling", "Engagement Analysis", "Trend Monitoring", "Competitor Analysis"],
+    Script: ["Script Creation","Lead Analyse Before Generating","Tips for Intraction"]
 };
 
 const CUSTOMER_TYPES = ["All", "SMB", "Mid-Market", "Enterprise", "Startup"];
@@ -60,6 +61,7 @@ const TYPE_ICON: Record<string, string | ReactElement> = {
     Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Mining" className=" object-contain w-10 h-10" />,
     Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
     Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Script:<img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
 };
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string; ring: string }> = {
@@ -72,6 +74,7 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string; ri
     Mining: { bg: "bg-fuchsia-50 dark:bg-fuchsia-950", text: "text-fuchsia-700 dark:text-fuchsia-300", border: "border-fuchsia-200 dark:border-fuchsia-800", ring: "ring-fuchsia-300 dark:ring-fuchsia-700" },
     Analytics: { bg: "bg-rose-50 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-800", ring: "ring-rose-300 dark:ring-rose-700" },
     Social: { bg: "bg-green-50 dark:bg-green-950", text: "text-green-700 dark:text-green-300", border: "border-green-200 dark:border-green-800", ring: "ring-green-300 dark:ring-green-700" },
+    Script: { bg: "bg-amber-50 dark:bg-amber-950", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800", ring: "ring-amber-300 dark:ring-amber-700" },
 };
 
 // ─── Reusable field wrapper ───────────────────────────────────────────────────

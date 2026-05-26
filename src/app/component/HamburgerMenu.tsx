@@ -8,73 +8,79 @@ import Link from "next/link";
 import { MdClose } from "react-icons/md";
 import { TfiClose } from "react-icons/tfi";
 import { useAuth } from "@/context/AuthContext";
+import { RiFilePaper2Fill } from "react-icons/ri";
 
 export default function MobileHamburger() {
 
 
-   const { admin, isLoading, login } = useAuth();
+  const { admin, isLoading, login } = useAuth();
   const data = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: <Home size={22} />,
-  },
-  {
-    title: "Campaign",
-    url: `${admin?.role!=="administrator"?"/masters/campaign/allcampaigns":"/masters/campaign"}`,
-    icon: <BrickWallFire size={22} />,
-  },
-  {
-    title: "Customer",
-    url: "/customer",
-    icon: <Podcast size={22} />,
-  },
-  {
-    title: "FollowUp",
-    url: "/followups/customer",
-    icon: <School size={22} />,
-  },
-  {
-    title: "Contact",
-    url: "/contact",
-    icon: <Podcast size={22} />,
-  },
-  {
-    title: "Contact FollowUp",
-    url: "/followups/contact",
-    icon: <School size={22} />,
-  },
-  {
-    title: "Status Type",
-    url: "/masters/status-type",
-    icon: <NotebookTabs size={22} />,
-  },
-  {
-    title: "Favroites",
-    url: "/favourites",
-    icon: <Cable size={22} />,
-  },
-  {
-    title: "Task",
-    url: "/task",
-    icon: <ShieldUser size={22} />,
-  },
-  {
-    title: " Report",
-    url: `/reports/customer`,
-    icon: <BrickWallFire size={22} />
-  }
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: <Home size={22} />,
+    },
+    {
+      title: "Campaign",
+      url: `${admin?.role !== "administrator" ? "/masters/campaign/allcampaigns" : "/masters/campaign"}`,
+      icon: <BrickWallFire size={22} />,
+    },
+    {
+      title: "Customer",
+      url: "/customer",
+      icon: <Podcast size={22} />,
+    },
+    {
+      title: "FollowUp",
+      url: "/followups/customer",
+      icon: <School size={22} />,
+    },
+    {
+      title: "Contact",
+      url: "/contact",
+      icon: <Podcast size={22} />,
+    },
+    {
+      title: "Contact FollowUp",
+      url: "/followups/contact",
+      icon: <School size={22} />,
+    },
+    {
+      title: "Status Type",
+      url: "/masters/status-type",
+      icon: <NotebookTabs size={22} />,
+    },
+    {
+      title: "Favroites",
+      url: "/favourites",
+      icon: <Cable size={22} />,
+    },
+    {
+      title: "Task",
+      url: "/task",
+      icon: <ShieldUser size={22} />,
+    },
+    {
+      title: "Sales Script",
+      url: "/salesscript",
+      icon: <RiFilePaper2Fill size={22} />
+    },
+    {
+      title: " Report",
+      url: `/reports/customer`,
+      icon: <BrickWallFire size={22} />
+    }
 
-]
+  ]
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-    const [currentYear,setCurrentYear]=useState<number | null>(null);
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
 
-useEffect(()=>{
-   const date = new Date();
+  useEffect(() => {
+    const date = new Date();
     setCurrentYear(date.getFullYear());
-},[]);
+  }, []);
   // Close on outside click + ESC
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -159,7 +165,7 @@ useEffect(()=>{
             ref={buttonRef}
             onClick={() => setOpen(!open)}
             className=" mx-4 fixed rounded-sm top-4 p-2 bg-white dark:bg-[var(--color-childbgdark)] dark:text-white z-[2001] left-64 text-xl  outline-0  flex items-center justify-center"
-          ><TfiClose  size={20}/></button>}
+          ><TfiClose size={20} /></button>}
         </AnimatePresence>
 
         {/* Left Side Overlay */}

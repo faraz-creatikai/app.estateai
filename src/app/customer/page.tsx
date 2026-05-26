@@ -86,6 +86,7 @@ import AnalyticsAgentWorkspace from "../component/aiagents/AnalyticsAgentWorkspa
 import SocialMiningAgentWorkspace from "../component/aiagents/MiningAgentWorkspace";
 import SocialAgentWorkspace from "../component/aiagents/SocialAgentWorkspace";
 import { FaHandshakeSimple } from "react-icons/fa6";
+import ScriptAgentWorkspace from "../component/aiagents/ScriptAgentWorkspace";
 
 
 interface DeleteAllDialogDataInterface { }
@@ -185,6 +186,7 @@ export default function Customer() {
   const [isTemperatureDialogOpen, setIsTemperatureDialogOpen] = useState(false);
   const [temperatureDialogData, setTemperatureDialogData] = useState<any>(null);
   const [isTodayDialogOpen, setIsTodayDialogOpen] = useState(false);
+  const initialParamFetch = useRef(false);
 
 
   const temperatureConfig: any = {
@@ -421,30 +423,76 @@ export default function Customer() {
 
 
   // ── Effect 1: Mount-only ──────────────────────────────────────────────────────
-  useEffect(() => {
-    fetchAiAgents();
-    fetchTodayCustomer();
-    fetchcalllogs();
-    audioRef.current = new Audio(
-      "https://res.cloudinary.com/dsyzuwice/video/upload/v1774423860/voicepop_ypkmtz.mp3"
-    );
+// ── Effect 1: Mount-only (VIP Priority for getCustomers) ───────────────────
+useEffect(() => {
+  audioRef.current = new Audio(
+    "https://res.cloudinary.com/dsyzuwice/video/upload/v1774423860/voicepop_ypkmtz.mp3"
+  );
 
+  const loadData = async () => {
+    // ---------------------------------------------------------
+    // PHASE 1: THE VIP TASK
+    // Fire this instantly so it claims the #1 network connection
+    // ---------------------------------------------------------
+    let customersPromise = null;
     if (!activeParam) {
-      getCustomers();
-      getTotalCustomerPage();
+      customersPromise = getCustomers(); 
     }
 
-    fetchFields();
-  }, []);
+    // ---------------------------------------------------------
+    // PHASE 2: SECONDARY UI TASKS
+    // Fire these immediately after. (Total of 3 requests, well 
+    // under the browser's 6-request limit, so zero queueing!)
+    // ---------------------------------------------------------
+    const uiTasks = [fetchFields()];
+    if (!activeParam) {
+      uiTasks.push(getTotalCustomerPage());
+    }
+
+    // Wait for the critical table data and UI data to finish
+    if (customersPromise) await customersPromise;
+    await Promise.allSettled(uiTasks);
+
+    // ---------------------------------------------------------
+    // PHASE 3: BACKGROUND TASKS
+    // These 3 tasks ONLY fire after getCustomers is 100% finished.
+    // ---------------------------------------------------------
+    fetchAiAgents();
+    fetchTodayCustomer();
+   // fetchcalllogs();
+  };
+
+  loadData();
+}, []);
 
 
   // ── Effect 2: Fires only when the ONE relevant options array changes ───────────
   // Because `relevantOptions` points to only Campaign OR ReferenceId OR
   // LeadTemperature — not all three — this effect runs exactly once when
   // the needed options load. Other arrays loading won't trigger it.
-  useEffect(() => {
-    if (!activeParam || !relevantOptions?.length) return;
+ useEffect(() => {
+  if (!activeParam) return;
 
+  // ---------------------------------------------------------
+  // 1. INSTANT API CALL (Runs immediately, no waiting)
+  // ---------------------------------------------------------
+  if (!initialParamFetch.current) {
+    if (status) {
+      handleSelectChange("Campaign", status, { ...filters, Campaign: [status] });
+    } else if (reference) {
+      handleSelectChange("ReferenceId", reference, { ...filters, ReferenceId: [reference] });
+    } else if (leadtemperature) {
+      handleSelectChange("LeadTemperature", leadtemperature, { ...filters, LeadTemperature: [leadtemperature] });
+    }
+    
+    // Mark as fetched so this block only runs once on page load
+    initialParamFetch.current = true;
+  }
+
+  // ---------------------------------------------------------
+  // 2. DELAYED UI UPDATE (Waits for fetchFields to populate Dropdowns)
+  // ---------------------------------------------------------
+  if (relevantOptions?.length) {
     if (status) {
       const campaignObj = fieldOptions?.Campaign?.find((c) => c.Name === status);
       setFilters((prev) => ({ ...prev, StatusAssign: [status] }));
@@ -452,8 +500,6 @@ export default function Customer() {
         ...prev,
         Campaign: { id: campaignObj?._id, name: campaignObj?.Name },
       }));
-      setCustomerTableLoader(false);
-      handleSelectChange("Campaign", status, { ...filters, Campaign: [status] });
 
     } else if (reference) {
       const referenceObj = fieldOptions?.ReferenceId?.find((c) => c.Name === reference);
@@ -462,35 +508,29 @@ export default function Customer() {
         ...prev,
         ReferenceId: { id: referenceObj?._id, name: referenceObj?.Name },
       }));
-      setCustomerTableLoader(false);
-      handleSelectChange("ReferenceId", reference, { ...filters, ReferenceId: [reference] });
 
     } else if (leadtemperature) {
-      const leadtemperatureObj = fieldOptions?.LeadTemperature?.find(
-        (c) => c.Name === leadtemperature
-      );
+      const leadtemperatureObj = fieldOptions?.LeadTemperature?.find((c) => c.Name === leadtemperature);
       setFilters((prev) => ({ ...prev, LeadTemperature: [leadtemperature] }));
       setDependent((prev) => ({
         ...prev,
         LeadTemperature: { id: leadtemperatureObj?._id, name: leadtemperatureObj?.Name },
       }));
-      setCustomerTableLoader(false);
-      handleSelectChange("LeadTemperature", leadtemperature, {
-        ...filters,
-        LeadTemperature: [leadtemperature],
-      });
     }
+    
+    setCustomerTableLoader(false);
+  }
 
-  }, [searchParams, relevantOptions]); // only the ONE array that matters
+}, [searchParams, relevantOptions]);// only the ONE array that matters
 
-  const fetchcalllogs = async () => {
+/*   const fetchcalllogs = async () => {
     const res = await getCallReport();
 
     const res2 = await getCallLogs();
 
     console.log("call data", res);
     console.log("call logs", res2);
-  }
+  } */
 
 
   useEffect(() => {
@@ -1740,6 +1780,7 @@ export default function Customer() {
     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Mining" className=" object-contain w-10 h-10" />,
     Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Script: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
     default: "AG",
   };
 
@@ -2691,6 +2732,7 @@ export default function Customer() {
             submitLabel="Assign"
             onClose={() => setIsAssignOpen(false)}
             multiSelect
+            showPreview={false}
           >
             <div className="px-6 flex flex-col gap-3">
 
@@ -3102,8 +3144,14 @@ export default function Customer() {
                       <AnalyticsAgentWorkspace isOpen={isAIAgentsDialogOpen} />
                     </div>
 
+                    /* ── SCRIPT AGENT ── */
+                  ) : selectedAgent && selectedAgent.type === "Script" ? (
+                    <div className="flex-1 overflow-hidden px-6 py-4">
+                      <ScriptAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                    </div>
+
                     /* ── Error STATE ── */
-                  ) : (
+                  ) :(
                     <div className="flex-1 flex flex-col items-center justify-center py-16 text-center px-6">
                       <div
                         className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
@@ -3621,7 +3669,6 @@ export default function Customer() {
 
                       {/* ✅ SELECT ALL CHECKBOX COLUMN */}
                       <th className="px-2 py-3 border border-[var(--color-secondary-dark)] bg-[var(--color-primary)] sticky left-0 z-20 text-left">
-
                         <input
                           id="selectall"
                           type="checkbox"
@@ -3640,7 +3687,7 @@ export default function Customer() {
                           <th
                             key={header.key}
                             className={`px-2 py-3 border border-[var(--color-secondary-dark)] text-left  
-                ${header.key === "sno" ? "sticky left-7.5 z-20 bg-[var(--color-primary)]" : ""}`}
+              ${header.key === "sno" ? "sticky left-7.5 z-20 bg-[var(--color-primary)]" : ""}`}
                           >
                             {header.label}
                           </th>
@@ -3691,7 +3738,6 @@ export default function Customer() {
                                     cellValue = item.LeadType;
                                     break;
                                   case "City":
-
                                     cellValue = item.City;
                                     break;
                                   case "Area":
@@ -3700,11 +3746,9 @@ export default function Customer() {
                                   case "Email":
                                     cellValue = item.Email;
                                     break;
-
                                   case "Facillities":
                                     cellValue = item.Facillities;
                                     break;
-
                                   case "CustomerId":
                                     cellValue = item.CustomerId;
                                     break;
@@ -3722,7 +3766,6 @@ export default function Customer() {
                                       >
                                         {item.Adderess}
                                       </span>
-
                                     </>);
                                     break;
                                   case "CustomerYear":
@@ -3752,7 +3795,6 @@ export default function Customer() {
                                             <span className="flex">
                                               <Button
                                                 component="a"
-                                                /* href={`tel:${item.ContactNumber}`} */
                                                 onClick={() => handleCall({ customerNumber: item.ContactNumber })}
                                                 sx={{
                                                   backgroundColor: "#E8F5E9",
@@ -3833,7 +3875,6 @@ export default function Customer() {
                                   case "reference":
                                     cellValue = item.ReferenceId;
                                     break;
-
                                   case "url":
                                     cellValue = item.URL;
                                     break;
@@ -3854,7 +3895,6 @@ export default function Customer() {
                                       <div className="grid grid-cols-2 gap-3 items-center h-full">
                                         <Button
                                           sx={{ backgroundColor: "#E8F5E9", color: "var(--color-primary)", minWidth: "32px", height: "32px", borderRadius: "8px" }}
-                                          /*  onClick={() => router.push(`/followups/customer/add/${item._id}`)} */
                                           onClick={() => {
                                             setSelectedCustomerFollowupId(item._id);
                                             setIsFollowupOpen(true);
@@ -3864,7 +3904,7 @@ export default function Customer() {
                                         </Button>
                                         <Button
                                           sx={{ backgroundColor: "#E8F5E9", color: "var(--color-primary)", minWidth: "32px", height: "32px", borderRadius: "8px" }}
-                                          onClick={() => /* router.push(`/customer/edit/${item._id}`) */ handleEditClick(item._id)}
+                                          onClick={() => handleEditClick(item._id)}
                                         >
                                           <MdEdit />
                                         </Button>
@@ -3882,7 +3922,6 @@ export default function Customer() {
                                         >
                                           <MdDelete />
                                         </Button>}
-
                                         <Button
                                           sx={{ backgroundColor: "#FFF0F5", color: item.isFavourite ? "#E91E63" : "#C62828", minWidth: "32px", height: "32px", borderRadius: "8px" }}
                                           onClick={() =>
@@ -3949,7 +3988,6 @@ export default function Customer() {
                                               transform: "scale(1.05)"
                                             }
                                           }}
-
                                         >
                                           <FaEye size={12} />
                                         </Button>
@@ -3974,7 +4012,6 @@ export default function Customer() {
                                               transform: "scale(1.05)"
                                             }
                                           }}
-
                                         >
                                           <FaHandshakeSimple size={20} />
                                         </Button>
@@ -3987,17 +4024,17 @@ export default function Customer() {
                               }
 
                               return (
-                                <td key={col.key} className={`px-2 py-3 border border-gray-200 break-all whitespace-normal 
-                                    ${col.key !== "sno" ? "min-w-[100px]" : ""}
-             ${col.key === "description" && item.Description ? "min-w-[160px]" : ""} 
-            ${col.key === "sno" ? "sticky left-7.5  bg-white max-w-[60px]" : ""}
-             ${col.key === "type" ? "max-w-[80px]" : ""}
-             ${col.key === "subtype" ? "max-w-[90px]" : ""} 
-             ${col.key === "contact" ? "max-w-[140px]" : ""} 
-             ${col.key === "reference" ? "max-w-[70px]" : ""}
-              ${col.key === "date" ? "min-w-[100px]" : ""} 
-             ${col.key === "actions" ? "min-w-[90px] align-middle" : ""}
-             `}>
+                                <td key={col.key} className={`px-2 py-3 border border-gray-200 break-words whitespace-normal align-top 
+                    ${col.key !== "sno" ? "min-w-[100px]" : ""}
+                    ${col.key === "description" && item.Description ? "min-w-[160px]" : ""} 
+                    ${col.key === "sno" ? "sticky left-7.5  bg-white max-w-[60px]" : ""}
+                    ${col.key === "type" ? "max-w-[80px]" : ""}
+                    ${col.key === "subtype" ? "max-w-[90px]" : ""} 
+                    ${col.key === "contact" ? "max-w-[140px]" : ""} 
+                    ${col.key === "reference" ? "max-w-[70px]" : ""}
+                    ${col.key === "date" ? "min-w-[100px]" : ""} 
+                    ${col.key === "actions" ? "min-w-[90px] align-top" : ""}
+                `}>
                                   {cellValue}
                                 </td>
                               );

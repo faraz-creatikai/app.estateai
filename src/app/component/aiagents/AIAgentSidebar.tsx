@@ -63,12 +63,17 @@ const AIAgentSidebar: React.FC<Props> = ({
                                         { step: "1", label: "Connect your social accounts", icon: "🔗" },
                                         { step: "2", label: "AI analyses trends & engagement", icon: "📈" },
                                         { step: "3", label: "Get content suggestions & insights", icon: "💡" },
-                                    ]
-                                    : [
-                                        { step: "1", label: "Select an agent type", icon: "🤖" },
-                                        { step: "2", label: "Describe your task", icon: "✍️" },
-                                        { step: "3", label: "Get AI-powered results", icon: "⚡" },
-                                    ];
+                                    ] : selectedAgent?.type === "Script"
+                                        ? [
+                                            { step: "1", label: "Enter prompt or customer details", icon: "📝" },
+                                            { step: "2", label: "AI analyzes context & requirements", icon: "🧠" },
+                                            { step: "3", label: "Generate and refine sales script", icon: "✨" },
+                                        ]
+                                        : [
+                                            { step: "1", label: "Select an agent type", icon: "🤖" },
+                                            { step: "2", label: "Describe your task", icon: "✍️" },
+                                            { step: "3", label: "Get AI-powered results", icon: "⚡" },
+                                        ];
 
     const capabilities =
         selectedAgent?.type === "Matching"
@@ -122,21 +127,28 @@ const AIAgentSidebar: React.FC<Props> = ({
                                     "Actionable improvement suggestions",
                                 ]
                                 : selectedAgent?.type === "Social"
-                                ? [
-                                    "Content performance analysis",
-                                    "Optimal posting time suggestions",
-                                    "Audience engagement insights",
-                                    "Trend monitoring & alerts",
-                                    "Competitor content analysis",
+                                    ? [
+                                        "Content performance analysis",
+                                        "Optimal posting time suggestions",
+                                        "Audience engagement insights",
+                                        "Trend monitoring & alerts",
+                                        "Competitor content analysis",
 
-                                ]
-                                 : [
-                                    "Intelligent lead matching",
-                                    "Natural language interface",
-                                    "Real-time AI processing",
-                                    "CRM data integration",
-                                    "Actionable insights",
-                                ];
+                                    ]
+                                    : selectedAgent?.type === "Social"
+                                        ? [
+                                            "AI-powered sales script generation",
+                                            "Personalized customer context analysis",
+                                            "Multi-language script support",
+                                            "Lead & follow-up based script creation",
+                                            "Custom script editing & refinement",
+                                        ] : [
+                                            "Intelligent lead matching",
+                                            "Natural language interface",
+                                            "Real-time AI processing",
+                                            "CRM data integration",
+                                            "Actionable insights",
+                                        ];
 
     const tip =
         selectedAgent?.type === "Matching"
@@ -152,8 +164,8 @@ const AIAgentSidebar: React.FC<Props> = ({
                             : selectedAgent?.type === "Calling"
                                 ? "Review the AI briefing before the call to improve conversion chances."
                                 : selectedAgent?.type === "Social"
-                                ? "For content suggestions, specify the platform and audience for more tailored insights."
-                                : "Use natural language — the AI understands context, not just keywords.";
+                                    ? "For content suggestions, specify the platform and audience for more tailored insights."
+                                    : "Use natural language — the AI understands context, not just keywords.";
 
     return (
         <div

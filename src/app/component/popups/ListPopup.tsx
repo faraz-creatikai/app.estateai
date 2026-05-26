@@ -19,6 +19,7 @@ interface ListPopupProps {
   submitLabel: string;
   onClose: () => void;
   multiSelect?: boolean;
+  showPreview?: boolean; 
   children?: React.ReactNode;
 }
 
@@ -31,6 +32,7 @@ export default function ListPopup({
   submitLabel,
   onClose,
   multiSelect,
+  showPreview = true,
   children,
 }: ListPopupProps) {
   const [previewItem, setPreviewItem] = useState<ListItem | null>(null);
@@ -49,8 +51,9 @@ export default function ListPopup({
 
   return (
     <PopupMenu onClose={onClose}>
-      <div className="relative flex flex-col bg-white w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden">
-
+      {/* Added max-h-[90vh] so the popup itself never exceeds the screen height */}
+      <div className="relative flex flex-col bg-white w-full max-w-[420px] max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden">
+        
         {/* ── HEADER ── */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 shrink-0">
           <h2 className="text-xl text-[var(--color-secondary-darker)] font-extrabold tracking-tight">
@@ -74,24 +77,34 @@ export default function ListPopup({
         </div>
 
         {/* ── BODY ── */}
-        <div className="relative overflow-hidden" style={{ minHeight: "300px", maxHeight: "60vh" }}>
-
+        {/* Added flex-1 and min-h-0 here */}
+        <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden" style={{ minHeight: "300px", maxHeight: "60vh" }}>
+          
           {/* LIST PANEL */}
+          {/* Added min-h-0 here to force the flex child to obey the parent's maxHeight */}
           <div
-            className="transition-transform duration-300 ease-in-out h-full"
+            className="flex flex-col flex-1 min-h-0 transition-transform duration-300 ease-in-out w-full"
             style={{ transform: previewItem ? "translateX(-100%)" : "translateX(0)" }}
           >
-            {children && <div className="px-6 pt-4">{children}</div>}
-            <div className="flex flex-col gap-0.5 overflow-y-auto px-2 py-3 h-full">
+            {children && <div className="px-6 pt-4 shrink-0">{children}</div>}
+            
+            {/* Added min-h-0 here to ensure the inner list actually triggers overflow-y-auto */}
+            <div className="flex flex-col gap-0.5 overflow-y-auto hide-scrollbar px-2 py-3 flex-1 min-h-0">
               {list.length > 0 ? (
                 list.map((item) => (
                   <div
                     key={item._id}
-                    className="group flex items-center justify-between gap-3 cursor-pointer rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+                    className="group flex items-center justify-between gap-3 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <button
                       className="flex-1 text-left min-w-0"
-                      onClick={() => setPreviewItem(item)}
+                      onClick={() => {
+                        if (showPreview) {
+                          setPreviewItem(item);
+                        } else {
+                          onSelect(item._id);
+                        }
+                      }}
                     >
                       <p className="text-sm font-semibold text-gray-800 group-hover:text-[var(--color-primary)] transition-colors">
                         {item.name}
@@ -103,16 +116,18 @@ export default function ListPopup({
                       )}
                     </button>
 
-                    <button
-                      onClick={() => setPreviewItem(item)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-[var(--color-primary)] shrink-0"
-                      title="Preview"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </button>
+                    {showPreview && (
+                      <button
+                        onClick={() => setPreviewItem(item)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-[var(--color-primary)] shrink-0"
+                        title="Preview"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                    )}
 
                     <input
                       type="checkbox"
@@ -137,10 +152,6 @@ export default function ListPopup({
           >
             {previewItem && (
               <div className="flex flex-col gap-4 px-6 py-4">
-
-                
-
-                {/* Name */}
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">
                     Template Name
@@ -148,7 +159,6 @@ export default function ListPopup({
                   <p className="text-base font-bold text-gray-800">{previewItem.name}</p>
                 </div>
 
-                {/* Body */}
                 {previewItem.body && (
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">
@@ -160,7 +170,6 @@ export default function ListPopup({
                   </div>
                 )}
 
-                {/* Image — full width, natural height, no clipping */}
                 {previewItem.image && (
                   <img
                     src={previewItem.image}
@@ -169,7 +178,6 @@ export default function ListPopup({
                   />
                 )}
 
-                {/* Select CTA */}
                 <button
                   onClick={handleSelectFromPreview}
                   className={`w-full py-2.5 rounded-xl sticky bottom-1 left-0 text-sm font-semibold transition-colors ${
