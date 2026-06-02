@@ -174,7 +174,7 @@ const exportToExcel = async (data: MiningData, lastAnalyzed: Date | null) => {
   XLSX.utils.book_append_sheet(wb,
     makeSheet(
       ['#', 'Problem ID', 'Title', 'Impact / Description'],
-      data.problems.map((p, i) => [i + 1, p.id, p.title, p.impact]),
+      (data.problems ?? []).map((p, i) => [i + 1, p.id, p.title, p.impact]),
       [5, 14, 40, 70],
     ),
     'Problems',
@@ -424,7 +424,7 @@ const exportToPDF = async (data: MiningData, lastAnalyzed: Date | null) => {
     startY: y,
     margin: { left: MARGIN, right: MARGIN },
     head: [['#', 'ID', 'Priority', 'Title', 'Description']],
-    body: data.actions.map((a, i) => [i + 1, a.id, a.priority, a.title, a.description]),
+    body: (data.actions ?? []).map((a, i) => [i + 1, a.id, a.priority, a.title, a.description]),
     headStyles:  { fillColor: GREEN, textColor: 255, fontSize: 8, fontStyle: 'bold' },
     bodyStyles:  { fontSize: 7.5, textColor: DARK },
     alternateRowStyles: { fillColor: [240, 253, 244] as [number, number, number] },
@@ -949,7 +949,7 @@ const FunnelTab = ({ data }: { data: MiningData }) => {
     { label: 'Cold', count: cold, color: '#0369a1', bar: '#7dd3fc' },
   ]
 
-  const budgetEntries = Object.entries(data.budgetAnalysis.distribution)
+  const budgetEntries = Object.entries(data.budgetAnalysis.distribution ?? {})
   const maxBudget     = Math.max(...budgetEntries.map(([, v]) => v))
 
   return (
