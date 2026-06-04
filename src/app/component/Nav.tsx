@@ -198,9 +198,13 @@ export default function Navbar() {
   const [notiLoading, setNotiLoading] = useState(false);
   const [toastNotification, setToastNotification] = useState<Notification | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const AUTO_CLOSE_TOASTS = false;
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const topFive = notifications.filter((n) => !n.isRead).slice(0, 5);
+  const [toastQueue, setToastQueue] = useState<Notification[]>([]);
+const [activeToast, setActiveToast] =
+  useState<Notification | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     setNotiLoading(true);
@@ -229,20 +233,21 @@ export default function Navbar() {
     const socket = initSocket(admin._id);  // ← init + get in one call
     console.log("✅ got socket in Navbar:", socket);
 
-    const handleNewNotification = (notification: Notification) => {
-      setNotifications((prev) => [notification, ...prev]);
+const handleNewNotification = (
+  notification: Notification
+) => {
+  setNotifications((prev) => [
+    notification,
+    ...prev,
+  ]);
 
-      // show toast
-      setToastNotification(notification);
+  setToastQueue((prev) => [
+    ...prev,
+    notification,
+  ]);
+};
 
-      // clear previous timer if exists
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-
-      // auto close after 5 seconds
-      toastTimerRef.current = setTimeout(() => {
-        setToastNotification(null);
-      }, TOAST_DURATION * 1000);
-    };
+    
 
     socket.on("notification", handleNewNotification);
     return () => {
@@ -250,6 +255,27 @@ export default function Navbar() {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, [admin?._id]);              // ← re-runs when admin becomes available
+
+useEffect(() => {
+  if (activeToast || toastQueue.length === 0) return;
+
+  const next = toastQueue[0];
+
+  setActiveToast(next);
+
+  // Don't start timer if auto-close is disabled
+  if (!AUTO_CLOSE_TOASTS) return;
+
+  const timer = setTimeout(() => {
+    setActiveToast(null);
+
+    setToastQueue((prev) =>
+      prev.slice(1)
+    );
+  }, TOAST_DURATION * 1000);
+
+  return () => clearTimeout(timer);
+}, [toastQueue, activeToast]);
 
   const handleMarkRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -322,13 +348,17 @@ export default function Navbar() {
   return (
     <ProtectedRoute>
       {/* ── Notification Toast ───────────────────────────────────────── */}
-      <NotificationToast
-        notification={toastNotification}
-        onClose={() => {
-          setToastNotification(null);
-          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-        }}
-      />
+     <NotificationToast
+  notification={activeToast}
+  onClose={() => {
+    setActiveToast(null);
+
+    setToastQueue((prev) =>
+      prev.slice(1)
+    );
+  }}
+/>
+
       <div className="flex justify-end items-center bg-white max-sm:bg-[var(--color-primary)] max-sm:text-white text-gray-800">
         <button onClick={toggleTheme} className="p-2 max-sm:hidden rounded-md hover:bg-gray-100 hover:text-[var(--color-primary)] transition-colors">
           {dark ? <Sun size={18} /> : <Moon size={18} />}

@@ -21,7 +21,7 @@ export default function Page() {
   return (
     <div className="grid place-items-center min-h-screen">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
         <p className="text-sm text-gray-500">Loading...</p>
       </div>
     </div>

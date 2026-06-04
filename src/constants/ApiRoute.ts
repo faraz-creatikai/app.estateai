@@ -23,6 +23,7 @@ export const API_ROUTES = {
   },
   CUSTOMER: {
     GET_ALL: `${BASE_URL}/customer`,
+     GET_ALL_TOTAL: `${BASE_URL}/customer/all`,
     GET_FAVOURITES_CUSTOMER: `${BASE_URL}/customer/favouriteS/all`,
     GET_TODAY_ALL: `${BASE_URL}/customer/today`,
     GET_BY_ID: (id: string) => `${BASE_URL}/customer/${id}`,
@@ -110,6 +111,12 @@ export const API_ROUTES = {
     DELETE: (id: string) => `${BASE_URL}/aiagent/${id}`,
     ASSIGNAIAGENT: `${BASE_URL}/aiagent/assign`,
   },
+  TABBLY:{
+    GETCURRENTAGENT: `${BASE_URL}/tabbly/current-agent`,
+    GETAGENTVOICES: `${BASE_URL}/tabbly/agent-voices`,
+    UPDATEAGENT: `${BASE_URL}/tabbly/update-agent`,
+  },
+
   SALESSCRIPT: {
     GET_ALL: `${BASE_URL}/salesscript`,
     GET_BY_ID: (id: string) => `${BASE_URL}/salesscript/${id}`,

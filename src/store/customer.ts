@@ -19,6 +19,20 @@ export const getCustomer = async () => {
   }
 }
 
+export const getAllCustomer = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.GET_ALL_TOTAL, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
 export const getCustomerById = async (id: string) => {
   try {
     const response = await fetch(API_ROUTES.CUSTOMER.GET_BY_ID(id), { credentials: "include" });

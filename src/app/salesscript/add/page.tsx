@@ -299,20 +299,7 @@ export default function AddSalesScriptPage() {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[var(--color-primary-lighter)] to-white">
             {/* ── CSS Variables ─────────────────────────────────────────────────── */}
             <style>{`
-        :root {
-          --color-primary: #0066cc;
-          --color-primary-dark: #005bb8;
-          --color-primary-darker: #004c99;
-          --color-primary-light: #cce0ff;
-          --color-primary-lighter: #e6f0ff;
-          --color-secondary: #0066cc;
-          --color-secondary-dark: #005bb8;
-          --color-secondary-darker: #004c99;
-          --color-secondary-light: #cce0ff;
-          --color-accent: #99c2ff;
-          --color-muted: #cce0ff;
-          --color-destructive: #F87171;
-        }
+
 
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap');
 

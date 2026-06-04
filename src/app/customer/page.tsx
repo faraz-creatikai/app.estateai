@@ -121,7 +121,7 @@ export default function Customer() {
   const [hasMoreCustomers, setHasMoreCustomers] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [totalCustomers, setTotalCustomers] = useState(0);
-  const [totalCustomerPage, setTotalCustomerPage] = useState(1)
+
   const [isFilteredTrigger, setIsFilteredTrigger] = useState(false);
   const lastAppliedFiltersRef = useRef<typeof filters | null>(null);
   const [isDupContactTableLoading, setIsDupContactTableLoading] = useState(false);
@@ -187,6 +187,7 @@ export default function Customer() {
   const [temperatureDialogData, setTemperatureDialogData] = useState<any>(null);
   const [isTodayDialogOpen, setIsTodayDialogOpen] = useState(false);
   const initialParamFetch = useRef(false);
+  const [totalCustomerPage, setTotalCustomerPage] = useState(1);
 
 
   const temperatureConfig: any = {
@@ -420,7 +421,18 @@ export default function Customer() {
         : null;
 
   const relevantOptions = activeParam ? fieldOptions?.[activeParam] : null;
+// ── Pagination Effect (Restored) ──────────────────────────────────────────────
+useEffect(() => {
+  const total = Math.ceil(totalCustomers / Number(filters.Limit[0])) || 1;
+  setTotalCustomerPage(total);
+}, [filters, totalCustomers]);
 
+  const getTotalCustomerPage = async () => {
+    const data = await getCustomer();
+    const total = Math.ceil(data.length / Number(filters.Limit[0])) || 1
+    setTotalCustomerPage(total);
+    setTotalCustomers(data.length);
+  }
 
   // ── Effect 1: Mount-only ──────────────────────────────────────────────────────
 // ── Effect 1: Mount-only (VIP Priority for getCustomers) ───────────────────
@@ -446,7 +458,7 @@ useEffect(() => {
     // ---------------------------------------------------------
     const uiTasks = [fetchFields()];
     if (!activeParam) {
-      uiTasks.push(getTotalCustomerPage());
+     uiTasks.push(getTotalCustomerPage());
     }
 
     // Wait for the critical table data and UI data to finish
@@ -538,12 +550,7 @@ useEffect(() => {
     setExportingCustomerData(datatoExport);
   }, [selectedCustomers]);
 
-  const getTotalCustomerPage = async () => {
-    const data = await getCustomer();
-    const total = Math.ceil(data.length / Number(filters.Limit[0])) || 1
-    setTotalCustomerPage(total);
-    setTotalCustomers(data.length);
-  }
+
 
   const fetchTodayCustomer = async () => {
     const data = await getTodayCustomer();
@@ -560,10 +567,10 @@ useEffect(() => {
   };
 
 
-  useEffect(() => {
+/*   useEffect(() => {
     const total = Math.ceil(totalCustomers / Number(filters.Limit[0])) || 1
     setTotalCustomerPage(total);
-  }, [filters, totalCustomers]);
+  }, [filters, totalCustomers]); */
 
 
   function getPlainTextFromHTML(htmlString: string) {
@@ -1027,7 +1034,7 @@ useEffect(() => {
     setIsFilteredTrigger(false);
     await getCustomers();
 
-    getTotalCustomerPage();
+   
   };
 
   const refreshCustomersWithLastFilters = async () => {
