@@ -1,6 +1,6 @@
 "use client";
 
-import { getCustomer } from "@/store/customer";
+import { getCustomer, getLeadTemperatureStats } from "@/store/customer";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -307,25 +307,30 @@ const LeadTemperature: React.FC = () => {
 
   const ORDER: TempId[] = ["hot", "warm", "cold"];
 
-  const fetchData = async () => {
+const fetchData = async () => {
     setLoading(true);
     try {
-      const customers = await getCustomer();
+      // ✅ Call the new optimized endpoint instead of getting ALL customers
+      const response = await getLeadTemperatureStats();
 
-      const counts: Record<TempId, number> = { hot: 0, warm: 0, cold: 0 };
+      // Defensive check
+      if (!response || !response.data) {
+        setLoading(false);
+        return;
+      }
 
-      customers.forEach((c: any) => {
-        const t = (c.LeadTemperature ?? "").toLowerCase().trim() as TempId;
-        if (t in counts) counts[t]++;
-      });
+      // Backend now sends exactly what we need: { hot: X, warm: Y, cold: Z }
+      const counts = response.data;
 
+      // Calculate total locally based on the returned counts
       const total = counts.hot + counts.warm + counts.cold;
 
+      // Build the bucket array for the UI
       const buckets: TempBucket[] = ORDER.map((id) => ({
         id,
         label: CONFIG[id].label,
         count: counts[id],
-        pct:   total > 0 ? (counts[id] / total) * 100 : 0,
+        pct: total > 0 ? (counts[id] / total) * 100 : 0,
       }));
 
       setData({ buckets, total });

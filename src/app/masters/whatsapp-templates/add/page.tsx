@@ -11,6 +11,7 @@ import { addWhatsapp } from "@/store/masters/whatsapp/whatsapp";
 import BackButton from "@/app/component/buttons/BackButton";
 import SaveButton from "@/app/component/buttons/SaveButton";
 import MasterProtectedRoute from "@/app/component/MasterProtectedRoutes";
+import WhatsappRichFields, { buildRichFormData, defaultRichData, WhatsappRichData } from "@/app/component/datafields/WhatsappRichFields";
 
 interface ErrorInterface {
   [key: string]: string;
@@ -26,8 +27,10 @@ export default function WhatsappAdd() {
   const [errors, setErrors] = useState<ErrorInterface>({});
   const [whatsappImagePreview, setWhatsappImagePreview] = useState<string | null>(null);
   const [whatsappImageFile, setWhatsappImageFile] = useState<File | null>(null);
+  const [rich, setRich] = useState<WhatsappRichData>(defaultRichData);
 
   const router = useRouter();
+  
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -66,11 +69,19 @@ export default function WhatsappAdd() {
   };
 
   const handleSubmit = async () => {
+    console.log(" what")
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      console.log(" validationerrors", validationErrors);
       return;
     }
+
+    if (rich.whatsappMediaType === "location" && (!rich.locationLat || !rich.locationLng)) {
+  toast.error("Pick a location on the map before saving");
+  return;
+}
+
 
     try {
       const formData = new FormData();
@@ -81,6 +92,8 @@ export default function WhatsappAdd() {
       if (whatsappImageFile) {
         formData.append("whatsappImage", whatsappImageFile);
       }
+      buildRichFormData(formData, rich);
+      
       const result = await addWhatsapp(formData);
       if (result) {
         toast.success("WhatsApp Template added successfully!");
@@ -131,6 +144,7 @@ export default function WhatsappAdd() {
                     label="status"
                     value={whatsappData.status}
                     onChange={(v) => handleSelectChange("status", v)}
+                    error={errors.status}
                   />
                   
 
@@ -143,13 +157,14 @@ export default function WhatsappAdd() {
                   onChange={handleInputChange}
                   error={errors.body}
                 />
-                <FileUpload
-                    label="WhatsApp Image"
-                    multiple={false}
-                    previews={whatsappImagePreview ? [whatsappImagePreview] : []}
-                    onChange={handleWhatsappImageChange}
-                    onRemove={handleRemoveWhatsappImage}
-                  />
+                <WhatsappRichFields
+  rich={rich}
+  setRich={setRich}
+  mediaFile={whatsappImageFile}
+  mediaPreview={whatsappImagePreview}
+  onMediaChange={handleWhatsappImageChange}
+  onRemoveMedia={handleRemoveWhatsappImage}
+/>
 
                 <div className="flex justify-end mt-4">
 

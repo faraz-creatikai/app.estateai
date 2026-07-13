@@ -1,9 +1,26 @@
 "use client"
 import { formatDateDMY } from '@/app/utils/formatDateDMY'
 import { getCustomer, getRecommendedCustomers } from '@/store/customer'
+import { addToShortlist } from '@/store/customer'
 import React, { useEffect, useRef, useState, useMemo } from 'react'
 
-/* ── tiny icon components (no extra deps) ── */
+/* ── Status Types & Config ── */
+type StatusValue = 'shortlisted' | 'contacted' | 'site_visit' | 'rejected'
+
+const STATUS_CONFIG: Record<StatusValue, {
+    label: string; bg: string; color: string; border: string
+    activeBg: string; activeColor: string; dot: string
+}> = {
+    shortlisted: { label: 'Shortlisted', bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd', activeBg: '#0284c7', activeColor: '#fff', dot: '#38bdf8' },
+    contacted: { label: 'Contacted', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0', activeBg: '#059669', activeColor: '#fff', dot: '#34d399' },
+    site_visit: { label: 'Site Visit', bg: '#faf5ff', color: '#6d28d9', border: '#ddd6fe', activeBg: '#7c3aed', activeColor: '#fff', dot: '#a78bfa' },
+    rejected: { label: 'Rejected', bg: '#fef2f2', color: '#b91c1c', border: '#fecaca', activeBg: '#dc2626', activeColor: '#fff', dot: '#f87171' },
+}
+const STATUS_ENTRIES = Object.entries(STATUS_CONFIG) as [StatusValue, typeof STATUS_CONFIG[StatusValue]][]
+
+const PAGE_SIZE = 20;
+
+/* ── tiny icon components ── */
 const SearchIcon = () => (
     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="8" strokeWidth={2} />
@@ -92,6 +109,41 @@ const LinkIcon = () => (
             d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
     </svg>
 )
+const CheckIcon = () => (
+    <svg className="w-2.5 h-2.5" viewBox="0 0 12 12" fill="none">
+        <path d="M2 6l3 3 5-5" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+)
+const ListChecksIcon = () => (
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+    </svg>
+)
+
+/* ── Checkbox ── */
+const SelectCheckbox = ({
+    checked, onChange, indeterminate = false
+}: { checked: boolean; onChange: () => void; indeterminate?: boolean }) => (
+    <div
+        role="button"
+        tabIndex={0}
+        onClick={(e) => { e.stopPropagation(); onChange() }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange() } }}
+        className="flex-shrink-0 w-[18px] h-[18px] rounded-[5px] cursor-pointer flex items-center justify-center transition-all duration-150 cursor-pointer select-none"
+        style={{
+            background: checked ? '#0284c7' : indeterminate ? '#bae6fd' : 'transparent',
+            border: checked ? '2px solid #0284c7' : indeterminate ? '2px solid #0284c7' : '2px solid #cbd5e1',
+            boxShadow: checked ? '0 1px 4px rgba(2,132,199,0.3)' : 'none',
+        }}
+        title={checked ? 'Deselect' : 'Select'}
+    >
+        {checked && <CheckIcon />}
+        {!checked && indeterminate && (
+            <div className="w-2 h-0.5 rounded-full" style={{ background: '#0284c7' }} />
+        )}
+    </div>
+)
 
 /* ── avatar initials ── */
 const Avatar = ({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' }) => {
@@ -148,44 +200,31 @@ const CustomerDetailDrawer = ({ customer, onClose }: { customer: any; onClose: (
         { label: customer.City, bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
     ].filter(t => t.label)
 
-    // Extra fields from CustomerFields object
     const extraFields = customer.CustomerFields
         ? Object.entries(customer.CustomerFields).filter(([, v]) => v && String(v).trim())
         : []
 
     return (
         <>
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 z-20"
+            <div className="absolute cursor-pointer inset-0 z-20"
                 style={{ background: 'rgba(15,23,42,0.25)', backdropFilter: 'blur(2px)' }}
-                onClick={onClose}
-            />
-
-            {/* Drawer panel */}
-            <div
-                className="absolute right-0 top-0 bottom-0 z-30 flex flex-col overflow-hidden"
+                onClick={onClose} />
+            <div className="absolute right-0 top-0 bottom-0 z-30 flex flex-col overflow-hidden"
                 style={{
-                    width: '320px',
-                    background: '#ffffff',
+                    width: '320px', background: '#ffffff',
                     borderLeft: '1px solid #e2e8f0',
                     boxShadow: '-8px 0 32px rgba(0,0,0,0.08)',
                     animation: 'drawer-in 0.22s cubic-bezier(0.4,0,0.2,1)',
-                }}
-            >
-                {/* Hero header */}
+                }}>
                 <div className="flex-shrink-0 px-5 pt-5 pb-4 relative"
                     style={{ background: `linear-gradient(135deg, ${heroBg} 0%, #ffffff 100%)` }}>
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                    <button onClick={onClose}
+                        className="absolute cursor-pointer top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center transition-all"
                         style={{ background: 'rgba(0,0,0,0.06)', color: '#64748b' }}
                         onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.1)'}
-                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.06)'}
-                    >
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.06)'}>
                         <CloseIcon />
                     </button>
-
                     <div className="flex items-center gap-3 mb-3">
                         <Avatar name={customer.Name} size="lg" />
                         <div className="flex-1 min-w-0 pr-8">
@@ -199,7 +238,6 @@ const CustomerDetailDrawer = ({ customer, onClose }: { customer: any; onClose: (
                             )}
                         </div>
                     </div>
-
                     {tags.length > 0 && (
                         <div className="flex items-center gap-1.5 flex-wrap">
                             {tags.map((t, i) => (
@@ -211,18 +249,10 @@ const CustomerDetailDrawer = ({ customer, onClose }: { customer: any; onClose: (
                         </div>
                     )}
                 </div>
-
-                {/* Divider */}
                 <div className="h-px flex-shrink-0" style={{ background: '#e2e8f0' }} />
-
-                {/* Scrollable body */}
                 <div className="flex-1 overflow-y-auto px-5 py-4"
                     style={{ scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}>
-
-                    {/* Contact section */}
-                    <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>
-                        Contact
-                    </p>
+                    <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>Contact</p>
                     <div className="mb-4">
                         <DetailRow icon={<PhoneIcon />} label="Phone" value={customer.ContactNumber} />
                         <DetailRow icon={<MailIcon />} label="Email" value={customer.Email} />
@@ -232,11 +262,7 @@ const CustomerDetailDrawer = ({ customer, onClose }: { customer: any; onClose: (
                         <DetailRow icon={<MapPinIcon />} label="Area" value={customer.Area} />
                         <DetailRow icon={<MapPinIcon />} label="Sub-Location" value={customer.SubLocation} />
                     </div>
-
-                    {/* Details section */}
-                    <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>
-                        Details
-                    </p>
+                    <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>Details</p>
                     <div className="mb-4">
                         <DetailRow icon={<TagIcon />} label="Campaign" value={customer.Campaign} />
                         <DetailRow icon={<TagIcon />} label="Type" value={customer.Type} />
@@ -247,84 +273,46 @@ const CustomerDetailDrawer = ({ customer, onClose }: { customer: any; onClose: (
                         <DetailRow icon={<TagIcon />} label="Facilities" value={customer.Facillities} />
                         <DetailRow icon={<TagIcon />} label="Reference ID" value={customer.ReferenceId} />
                     </div>
-
-                    {/* Description */}
                     {customer.Description && (
                         <>
-                            <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>
-                                Description
-                            </p>
+                            <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>Description</p>
                             <div className="mb-4 px-3 py-2.5 rounded-xl border"
                                 style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
-                                <p className="text-[11.5px] leading-relaxed" style={{ color: '#475569' }}>
-                                    {customer.Description}
-                                </p>
+                                <p className="text-[11.5px] leading-relaxed" style={{ color: '#475569' }}>{customer.Description}</p>
                             </div>
                         </>
                     )}
-
-                    {/* Links */}
                     {(customer.URL || customer.GoogleMap || customer.Video) && (
                         <>
-                            <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>
-                                Links
-                            </p>
+                            <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>Links</p>
                             <div className="flex flex-col gap-1.5 mb-4">
                                 {customer.URL && (
                                     <a href={customer.URL} target="_blank" rel="noopener noreferrer"
                                         className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-medium transition-all"
-                                        style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#0284c7' }}
-                                        onMouseEnter={e => {
-                                            (e.currentTarget as HTMLElement).style.background = '#f0f9ff'
-                                            ;(e.currentTarget as HTMLElement).style.borderColor = '#bae6fd'
-                                        }}
-                                        onMouseLeave={e => {
-                                            (e.currentTarget as HTMLElement).style.background = '#f8fafc'
-                                            ;(e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'
-                                        }}>
+                                        style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#0284c7' }}>
                                         <LinkIcon /> Website
                                     </a>
                                 )}
                                 {customer.GoogleMap && (
                                     <a href={customer.GoogleMap} target="_blank" rel="noopener noreferrer"
-                                        className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-medium transition-all"
-                                        style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#059669' }}
-                                        onMouseEnter={e => {
-                                            (e.currentTarget as HTMLElement).style.background = '#f0fdf4'
-                                            ;(e.currentTarget as HTMLElement).style.borderColor = '#bbf7d0'
-                                        }}
-                                        onMouseLeave={e => {
-                                            (e.currentTarget as HTMLElement).style.background = '#f8fafc'
-                                            ;(e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'
-                                        }}>
+                                        className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-medium"
+                                        style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#059669' }}>
                                         <MapPinIcon /> Google Maps
                                     </a>
                                 )}
                                 {customer.Video && (
                                     <a href={customer.Video} target="_blank" rel="noopener noreferrer"
-                                        className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-medium transition-all"
-                                        style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#dc2626' }}
-                                        onMouseEnter={e => {
-                                            (e.currentTarget as HTMLElement).style.background = '#fef2f2'
-                                            ;(e.currentTarget as HTMLElement).style.borderColor = '#fecaca'
-                                        }}
-                                        onMouseLeave={e => {
-                                            (e.currentTarget as HTMLElement).style.background = '#f8fafc'
-                                            ;(e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'
-                                        }}>
+                                        className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-medium"
+                                        style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#dc2626' }}>
                                         <LinkIcon /> Video
                                     </a>
                                 )}
                             </div>
                         </>
                     )}
-
-                    {/* Assigned To */}
                     {customer.AssignTo?.length > 0 && (
                         <>
-                            <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>
-                                Assigned To
-                            </p>
+                            <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>Assigned To</p>
                             <div className="flex flex-wrap gap-1.5 mb-4">
                                 {customer.AssignTo.map((a: any, i: number) => (
                                     <span key={i} className="text-[10.5px] font-medium px-2.5 py-1 rounded-lg border"
@@ -335,13 +323,9 @@ const CustomerDetailDrawer = ({ customer, onClose }: { customer: any; onClose: (
                             </div>
                         </>
                     )}
-
-                    {/* Extra / Custom Fields */}
                     {extraFields.length > 0 && (
                         <>
-                            <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>
-                                Additional Fields
-                            </p>
+                            <p className="text-[9.5px] font-bold uppercase tracking-widest mb-2" style={{ color: '#cbd5e1' }}>Additional Fields</p>
                             <div className="rounded-xl border overflow-hidden mb-4" style={{ borderColor: '#e2e8f0' }}>
                                 {extraFields.map(([key, val], i) => (
                                     <div key={i} className="flex items-start gap-2 px-3 py-2 border-b last:border-0"
@@ -350,9 +334,7 @@ const CustomerDetailDrawer = ({ customer, onClose }: { customer: any; onClose: (
                                             style={{ color: '#64748b' }}>
                                             {String(key).replace(/_/g, ' ')}
                                         </p>
-                                        <p className="text-[10.5px] flex-1 break-words" style={{ color: '#334155' }}>
-                                            {String(val)}
-                                        </p>
+                                        <p className="text-[10.5px] flex-1 break-words" style={{ color: '#334155' }}>{String(val)}</p>
                                     </div>
                                 ))}
                             </div>
@@ -364,78 +346,209 @@ const CustomerDetailDrawer = ({ customer, onClose }: { customer: any; onClose: (
     )
 }
 
-/* ── recommended customer card ── */
-const RecommendedCard = ({ c, onView }: { c: any; onView: (c: any) => void }) => (
-    <div
-        className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-150 group"
-        style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}
-        onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1'
-            ;(e.currentTarget as HTMLElement).style.background = '#f1f5f9'
-        }}
-        onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'
-            ;(e.currentTarget as HTMLElement).style.background = '#f8fafc'
-        }}
-    >
-        <Avatar name={c.Name} size="sm" />
-        <div className="flex-1 min-w-0">
-            <p className="text-[11.5px] font-semibold truncate" style={{ color: '#1e293b' }}>
-                {c.Name || '—'}
-            </p>
-            <p className="text-[10px] truncate mt-0.5" style={{ color: '#94a3b8' }}>
-                {c.ContactNumber || c.Email || '—'}
-            </p>
-            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                {c.Campaign && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
-                        style={{ background: '#f0f9ff', color: '#0369a1' }}>
-                        {c.Campaign}
-                    </span>
-                )}
-                {c.Type && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
-                        style={{ background: '#f0fdf4', color: '#166534' }}>
-                        {c.Type}
-                    </span>
-                )}
-                {c.City && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
-                        style={{ background: '#faf5ff', color: '#7c3aed' }}>
-                        {c.City}
-                    </span>
-                )}
-                {c.Location && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
-                        style={{ background: '#faf5ff', color: '#7c3aed' }}>
-                        {c.Location}
-                    </span>
-                )}
-            </div>
-        </div>
-
-        {/* View button */}
-        <button
-            onClick={e => { e.stopPropagation(); onView(c) }}
-            className="flex-shrink-0 cursor-pointer flex items-center gap-1 px-2 py-1 rounded-lg border text-[9.5px] font-semibold transition-all duration-150 opacity-0 group-hover:opacity-100"
-            style={{ background: '#ffffff', borderColor: '#e2e8f0', color: '#64748b' }}
+/* ── recommended customer card (with selection) ── */
+const RecommendedCard = ({
+    c, onView, isSelected, onToggle, shortlistedStatus,
+}: {
+    c: any
+    onView: (c: any) => void
+    isSelected: boolean
+    onToggle: (id: string) => void
+    shortlistedStatus?: StatusValue | null
+}) => {
+    const statusCfg = shortlistedStatus ? STATUS_CONFIG[shortlistedStatus] : null
+    return (
+        <div
+            className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-150 group cursor-pointer"
+            style={{
+                background: isSelected ? '#f0f9ff' : '#f8fafc',
+                borderColor: isSelected ? '#7dd3fc' : '#e2e8f0',
+                boxShadow: isSelected ? '0 0 0 1px #7dd3fc22' : 'none',
+            }}
             onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = '#f0f9ff'
-                ;(e.currentTarget as HTMLElement).style.borderColor = '#bae6fd'
-                ;(e.currentTarget as HTMLElement).style.color = '#0284c7'
+                if (!isSelected) {
+                    (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1';
+                    (e.currentTarget as HTMLElement).style.background = '#f1f5f9';
+                }
             }}
             onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = '#ffffff'
-                ;(e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'
-                ;(e.currentTarget as HTMLElement).style.color = '#64748b'
+                if (!isSelected) {
+                    (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0';
+                    (e.currentTarget as HTMLElement).style.background = '#f8fafc';
+                }
             }}
-            title="View all details"
+            onClick={() => onToggle(c._id)}
         >
-            <EyeIcon />
-            <span>View</span>
-        </button>
-    </div>
-)
+            <div className="mt-0.5">
+                <SelectCheckbox checked={isSelected} onChange={() => onToggle(c._id)} />
+            </div>
+            <Avatar name={c.Name} size="sm" />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-[11.5px] font-semibold truncate" style={{ color: '#1e293b' }}>
+                        {c.Name || '—'}
+                    </p>
+                    {statusCfg && (
+                        <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded-md border flex items-center gap-1"
+                            style={{ background: statusCfg.bg, color: statusCfg.color, borderColor: statusCfg.border }}>
+                            <span className="w-1 h-1 rounded-full inline-block flex-shrink-0" style={{ background: statusCfg.dot }} />
+                            {statusCfg.label}
+                        </span>
+                    )}
+                </div>
+                <p className="text-[10px] truncate mt-0.5" style={{ color: '#94a3b8' }}>
+                    {c.ContactNumber || c.Email || '—'}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {c.Campaign && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                            style={{ background: '#f0f9ff', color: '#0369a1' }}>{c.Campaign}</span>
+                    )}
+                    {c.Type && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                            style={{ background: '#f0fdf4', color: '#166634' }}>{c.Type}</span>
+                    )}
+                    {c.SubType && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                            style={{ background: '#f0fdf4', color: '#166634' }}>{c.SubType}</span>
+                    )}
+                    {(c.City || c.Location) && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                            style={{ background: '#faf5ff', color: '#7c3aed' }}>
+                            {c.City || c.Location}
+                        </span>
+                    )}
+                    {c.Location && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                            style={{ background: '#faf5ff', color: '#7c3aed' }}>
+                            {c.Location}
+                        </span>
+                    )}
+                    {c.SubLocation && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                            style={{ background: '#faf5ff', color: '#7c3aed' }}>
+                            {c.SubLocation}
+                        </span>
+                    )}
+
+                </div>
+            </div>
+            <button
+                onClick={e => { e.stopPropagation(); onView(c) }}
+                className="flex-shrink-0 cursor-pointer flex items-center gap-1 px-2 py-1 rounded-lg border text-[9.5px] font-semibold transition-all duration-150 opacity-0 group-hover:opacity-100"
+                style={{ background: '#ffffff', borderColor: '#e2e8f0', color: '#64748b' }}
+                onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = '#f0f9ff';
+                    (e.currentTarget as HTMLElement).style.borderColor = '#bae6fd';
+                    (e.currentTarget as HTMLElement).style.color = '#0284c7';
+                }}
+                onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = '#ffffff';
+                    (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0';
+                    (e.currentTarget as HTMLElement).style.color = '#64748b';
+                }}
+                title="View all details"
+            >
+                <EyeIcon /><span>View</span>
+            </button>
+        </div>
+    )
+}
+
+/* ── selection action bar ── */
+const SelectionBar = ({
+    count, status, onStatusChange, onShortlist, onClear, loading, success,
+}: {
+    count: number; status: StatusValue; onStatusChange: (s: StatusValue) => void
+    onShortlist: () => void; onClear: () => void; loading: boolean; success: boolean
+}) => {
+    const activeCfg = STATUS_CONFIG[status]
+    return (
+        <div
+            className="flex-shrink-0 mx-4 mb-2 rounded-2xl overflow-hidden border"
+            style={{
+                background: '#ffffff', borderColor: '#e2e8f0',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)',
+                animation: 'bar-in 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+            }}
+        >
+            <div className="flex items-center justify-between px-4 pt-3 pb-2"
+                style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-md flex items-center justify-center"
+                        style={{ background: '#f0f9ff', color: '#0284c7' }}>
+                        <ListChecksIcon />
+                    </div>
+                    <p className="text-[12px] font-semibold" style={{ color: '#0f172a' }}>
+                        {count} customer{count !== 1 ? 's' : ''} selected
+                    </p>
+                    {success && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
+                            style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                            <svg className="w-2.5 h-2.5" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="#166534" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            Shortlisted!
+                        </span>
+                    )}
+                </div>
+                <button
+                    onClick={onClear}
+                    className="flex items-center cursor-pointer gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg transition-all"
+                    style={{ color: '#94a3b8', background: 'transparent' }}
+                    onMouseEnter={e => {
+                        (e.currentTarget as HTMLElement).style.background = '#fef2f2';
+                        (e.currentTarget as HTMLElement).style.color = '#dc2626';
+                    }}
+                    onMouseLeave={e => {
+                        (e.currentTarget as HTMLElement).style.background = 'transparent';
+                        (e.currentTarget as HTMLElement).style.color = '#94a3b8';
+                    }}
+                >
+                    <ClearIcon /> Clear
+                </button>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2.5">
+                <div className="flex items-center gap-1.5 flex-1 flex-wrap">
+                    {STATUS_ENTRIES.map(([val, cfg]) => (
+                        <button
+                            key={val}
+                            onClick={() => onStatusChange(val)}
+                            className="flex items-center cursor-pointer gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all duration-150"
+                            style={status === val
+                                ? { background: cfg.activeBg, color: cfg.activeColor, borderColor: cfg.activeBg, boxShadow: `0 2px 6px ${cfg.activeBg}55` }
+                                : { background: cfg.bg, color: cfg.color, borderColor: cfg.border }
+                            }
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                style={{ background: status === val ? 'rgba(255,255,255,0.7)' : cfg.dot }} />
+                            {cfg.label}
+                        </button>
+                    ))}
+                </div>
+                <button
+                    onClick={onShortlist}
+                    disabled={loading}
+                    className="flex-shrink-0 cursor-pointer flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold transition-all duration-150 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{ background: activeCfg.activeBg, color: '#ffffff', boxShadow: `0 3px 10px ${activeCfg.activeBg}50` }}
+                    onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLElement).style.filter = 'brightness(1.1)' }}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.filter = 'none'}
+                >
+                    {loading ? (
+                        <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent"
+                            style={{ animation: 'qa-spin 0.8s linear infinite' }} />
+                    ) : (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                    )}
+                    {loading ? 'Saving…' : 'Shortlist'}
+                </button>
+            </div>
+        </div>
+    )
+}
 
 /* ─────────────────────────────────────────────── */
 const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
@@ -450,8 +563,14 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const [isCustomersLoading, setIsCustomersLoading] = useState(true)
     const [collapsedMap, setCollapsedMap] = useState<Record<number, boolean>>({})
-    // drawer state
     const [viewingCustomer, setViewingCustomer] = useState<any | null>(null)
+    const [selectedRecs, setSelectedRecs] = useState<Set<string>>(new Set())
+    const [shortlistStatus, setShortlistStatus] = useState<StatusValue>('shortlisted')
+    const [shortlistLoading, setShortlistLoading] = useState(false)
+    const [shortlistSuccess, setShortlistSuccess] = useState(false)
+    const [shortlistedMap, setShortlistedMap] = useState<Record<string, StatusValue>>({})
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+    const [recVisibleMap, setRecVisibleMap] = useState<Record<number, number>>({})
 
     const mapCustomer = (item: any) => {
         const date = new Date(item.createdAt)
@@ -493,36 +612,88 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
         }
     }
 
-    useEffect(() => {
-        if (!isOpen) return
-        const fetchCustomers = async () => {
-            setIsCustomersLoading(true)
-            try {
-                const res: any = await getCustomer()
-                if (res) {
-                    const mapped = res.map(mapCustomer)
-                    setCustomers(mapped)
-                    if (mapped.length) setSelectedId(mapped[0]._id)
-                }
-            } catch (err) {
-                console.error(err)
-            } finally {
-                setIsCustomersLoading(false)
+    // ── FIX 1: fetch on mount, no isOpen gate ──────────────────────────────
+    const fetchCustomers = async () => {
+        setIsCustomersLoading(true)
+        try {
+            const res: any = await getCustomer()
+            if (res) {
+                const mapped = res.map(mapCustomer)
+                setCustomers(mapped)
+                if (mapped.length) setSelectedId(mapped[0]._id)
             }
+        } catch (err) {
+            console.error(err)
+        } finally {
+            setIsCustomersLoading(false)
         }
-        fetchCustomers()
-    }, [isOpen])
+    }
+
+    useEffect(() => { fetchCustomers() }, [])
+    // ───────────────────────────────────────────────────────────────────────
+
+    useEffect(() => { setVisibleCount(PAGE_SIZE) }, [searchQuery])
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages, isLoading])
 
-    // close drawer on Escape
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setViewingCustomer(null) }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
     }, [])
+
+    useEffect(() => {
+        setSelectedRecs(new Set())
+        setShortlistSuccess(false)
+        setShortlistedMap({})
+    }, [selectedId])
+
+    const toggleRecSelection = (id: string) => {
+        setSelectedRecs(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+
+    const selectAllInMessage = (ids: string[]) => {
+        setSelectedRecs(prev => {
+            const next = new Set(prev)
+            const allSelected = ids.every(id => next.has(id))
+            if (allSelected) ids.forEach(id => next.delete(id))
+            else ids.forEach(id => next.add(id))
+            return next
+        })
+    }
+
+    const clearSelection = () => {
+        setSelectedRecs(new Set())
+        setShortlistSuccess(false)
+    }
+
+    const handleShortlist = async () => {
+        if (selectedRecs.size === 0 || !selectedId || shortlistLoading) return
+        setShortlistLoading(true)
+        try {
+            const propertyIds = [...selectedRecs]
+            const result = await addToShortlist({ customerId: selectedId, propertyIds, status: shortlistStatus })
+            if (result) {
+                const newMap = { ...shortlistedMap }
+                propertyIds.forEach(id => { newMap[id] = shortlistStatus })
+                setShortlistedMap(newMap)
+                setShortlistSuccess(true)
+                setSelectedRecs(new Set())
+                setTimeout(() => setShortlistSuccess(false), 3000)
+            }
+        } catch (err) {
+            console.error(err)
+        } finally {
+            setShortlistLoading(false)
+        }
+    }
 
     const SEARCH_FIELDS = ['All', 'Name', 'Email', 'Campaign', 'Type', 'Phone'] as const
 
@@ -547,6 +718,10 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
         })
     }, [customers, searchQuery, searchField])
 
+    const visibleCustomers = filteredCustomers.slice(0, visibleCount)
+    const hasMore = visibleCount < filteredCustomers.length
+    const remaining = filteredCustomers.length - visibleCount
+
     const selectedCustomer = customers.find((c: any) => c._id === selectedId)
 
     const autoResize = () => {
@@ -564,10 +739,8 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
         setPrompt('')
         if (textareaRef.current) textareaRef.current.style.height = 'auto'
         setIsLoading(true)
-
         try {
             const res: any = await getRecommendedCustomers({ customerId: selectedId, userPrompt: userText })
-
             if (res?.success) {
                 const mappedRecs = (res.data || []).map(mapCustomer)
                 setMessages(prev => [
@@ -587,7 +760,6 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
         } catch {
             setMessages(prev => [...prev, { role: 'ai', answer: 'Something went wrong. Please try again.', recommendedCustomers: [], count: 0 }])
         }
-
         setIsLoading(false)
     }
 
@@ -604,6 +776,8 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
     const toggleCollapse = (idx: number) => {
         setCollapsedMap(prev => ({ ...prev, [idx]: !prev[idx] }))
     }
+
+    const anySelected = selectedRecs.size > 0
 
     return (
         <div className="flex h-full overflow-hidden rounded-xl relative" style={{ background: '#f8fafc' }}>
@@ -626,7 +800,6 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                             {filteredCustomers.length}
                         </span>
                     </div>
-
                     <div className="relative mb-2">
                         <div className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }}>
                             <SearchIcon />
@@ -636,30 +809,20 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                             placeholder="Search customers…"
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-8 pr-7 py-2 rounded-xl text-[11.5px] outline-none border transition-all duration-150"
-                            style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#334155' }}
-                            onFocus={e => {
-                                e.currentTarget.style.borderColor = '#7dd3fc'
-                                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(125,211,252,0.12)'
-                            }}
-                            onBlur={e => {
-                                e.currentTarget.style.borderColor = '#e2e8f0'
-                                e.currentTarget.style.boxShadow = 'none'
-                            }}
+                            className="w-full pl-8 pr-7 py-2 rounded-xl text-[11.5px] outline-none border transition-all duration-150 bg-stone-50 border-slate-200 text-slate-700 focus:border-sky-300 focus:ring-2 focus:ring-sky-100 focus:bg-white"
                         />
                         {searchQuery && (
                             <button onClick={() => setSearchQuery('')}
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors"
+                                className="absolute cursor-pointer right-2.5 top-1/2 -translate-y-1/2 transition-colors"
                                 style={{ color: '#cbd5e1' }}>
                                 <ClearIcon />
                             </button>
                         )}
                     </div>
-
                     <div className="flex items-center gap-1 flex-wrap">
                         {SEARCH_FIELDS.map(f => (
                             <button key={f} onClick={() => setSearchField(f as any)}
-                                className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full transition-all duration-150"
+                                className="text-[9.5px] cursor-pointer font-semibold px-2 py-0.5 rounded-full transition-all duration-150"
                                 style={searchField === f
                                     ? { background: '#0284c7', color: '#ffffff' }
                                     : { background: '#f1f5f9', color: '#94a3b8' }
@@ -691,13 +854,13 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                             </div>
                             <p className="text-[11px] font-medium" style={{ color: '#94a3b8' }}>No customers found</p>
                         </div>
-                    ) : filteredCustomers.map((c: any) => {
+                    ) : visibleCustomers.map((c: any) => {
                         const isSelected = selectedId === c._id
                         return (
                             <button
                                 key={c._id}
                                 onClick={() => { setSelectedId(c._id); setMessages([]) }}
-                                className="w-full text-left px-4 py-3 transition-all duration-150 border-b"
+                                className="w-full cursor-pointer text-left px-4 py-3 transition-all duration-150 border-b"
                                 style={{
                                     borderColor: '#f1f5f9',
                                     background: isSelected ? 'rgba(2,132,199,0.05)' : 'transparent',
@@ -719,15 +882,27 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                                             {c.Campaign && (
                                                 <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
-                                                    style={{ background: '#f0f9ff', color: '#0369a1' }}>
-                                                    {c.Campaign}
-                                                </span>
+                                                    style={{ background: '#f0f9ff', color: '#0369a1' }}>{c.Campaign}</span>
                                             )}
                                             {c.Type && (
                                                 <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
-                                                    style={{ background: '#f0fdf4', color: '#166534' }}>
-                                                    {c.Type}
-                                                </span>
+                                                    style={{ background: '#f0fdf4', color: '#166534' }}>{c.Type}</span>
+                                            )}
+                                            {c.SubType && (
+                                                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                                                    style={{ background: '#f0fdf4', color: '#166534' }}>{c.SubType}</span>
+                                            )}
+                                            {c.City && (
+                                                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                                                    style={{ background: '#f0fdf4', color: '#166534' }}>{c.City}</span>
+                                            )}
+                                            {c.Location && (
+                                                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                                                    style={{ background: '#f0fdf4', color: '#166534' }}>{c.Location}</span>
+                                            )}
+                                            {c.SubLocation && (
+                                                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                                                    style={{ background: '#f0fdf4', color: '#166534' }}>{c.SubLocation}</span>
                                             )}
                                         </div>
                                     </div>
@@ -735,6 +910,25 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                             </button>
                         )
                     })}
+
+                    {hasMore && (
+                        <button
+                            onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+                            className="w-full py-3 cursor-pointer text-[11.5px] font-medium border-t transition-colors"
+                            style={{ borderColor: '#f1f5f9', color: '#94a3b8', background: 'transparent' }}
+                            onMouseEnter={e => {
+                                (e.currentTarget as HTMLElement).style.color = '#0284c7';
+                                (e.currentTarget as HTMLElement).style.background = '#f0f9ff';
+                            }}
+                            onMouseLeave={e => {
+                                (e.currentTarget as HTMLElement).style.color = '#94a3b8';
+                                (e.currentTarget as HTMLElement).style.background = 'transparent';
+                            }}
+                        >
+                            Load {Math.min(PAGE_SIZE, remaining)} more
+                            <span style={{ color: '#cbd5e1' }}> ({remaining} remaining)</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -794,9 +988,7 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                                 </svg>
                             </div>
                             <p className="text-[13px] font-semibold" style={{ color: '#334155' }}>Select a customer to start</p>
-                            <p className="text-[11.5px] mt-1" style={{ color: '#94a3b8' }}>
-                                Choose from the list and find similar leads
-                            </p>
+                            <p className="text-[11.5px] mt-1" style={{ color: '#94a3b8' }}>Choose from the list and find similar leads</p>
                         </div>
                     )}
 
@@ -811,17 +1003,17 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                             <div className="flex flex-col gap-2 w-full max-w-[320px]">
                                 {hints.map(h => (
                                     <button key={h} onClick={() => setPrompt(h)}
-                                        className="text-left px-3.5 py-2.5 rounded-xl text-[11.5px] font-medium transition-all duration-150 border"
+                                        className="text-left cursor-pointer px-3.5 py-2.5 rounded-xl text-[11.5px] font-medium transition-all duration-150 border"
                                         style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#475569' }}
                                         onMouseEnter={e => {
-                                            (e.currentTarget as HTMLElement).style.background = '#f0f9ff'
-                                            ;(e.currentTarget as HTMLElement).style.borderColor = '#bae6fd'
-                                            ;(e.currentTarget as HTMLElement).style.color = '#0284c7'
+                                            (e.currentTarget as HTMLElement).style.background = '#f0f9ff';
+                                            (e.currentTarget as HTMLElement).style.borderColor = '#bae6fd';
+                                            (e.currentTarget as HTMLElement).style.color = '#0284c7';
                                         }}
                                         onMouseLeave={e => {
-                                            (e.currentTarget as HTMLElement).style.background = '#f8fafc'
-                                            ;(e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'
-                                            ;(e.currentTarget as HTMLElement).style.color = '#475569'
+                                            (e.currentTarget as HTMLElement).style.background = '#f8fafc';
+                                            (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0';
+                                            (e.currentTarget as HTMLElement).style.color = '#475569';
                                         }}>
                                         {h}
                                     </button>
@@ -834,12 +1026,10 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                     {messages.map((m: any, i: number) => (
                         <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
 
-                            {/* AI MESSAGE */}
                             {m.role === 'ai' && (
-                                <div className="max-w-[88%] w-full rounded-2xl rounded-tl-md overflow-hidden border"
+                                <div className="max-w-[92%] w-full rounded-2xl rounded-tl-md overflow-hidden border"
                                     style={{ borderColor: '#e2e8f0', background: '#ffffff', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
 
-                                    {/* AI Answer section */}
                                     {m.answer && (
                                         <div className="px-4 pt-3.5 pb-3 border-b" style={{ borderColor: '#f1f5f9' }}>
                                             <div className="flex items-center gap-1.5 mb-2">
@@ -847,108 +1037,173 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                                                     style={{ background: 'rgba(2,132,199,0.1)', color: '#0284c7' }}>
                                                     <SparkleIcon />
                                                 </div>
-                                                <p className="text-[10px] font-semibold uppercase tracking-wider"
-                                                    style={{ color: '#94a3b8' }}>
+                                                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94a3b8' }}>
                                                     AI Insight
                                                 </p>
                                             </div>
-                                            <p className="text-[12.5px] leading-relaxed" style={{ color: '#334155' }}>
-                                                {m.answer}
-                                            </p>
+                                            <p className="text-[12.5px] leading-relaxed" style={{ color: '#334155' }}>{m.answer}</p>
                                         </div>
                                     )}
 
-                                    {/* Recommended customers section */}
-                                    {m.recommendedCustomers?.length > 0 && (
-                                        <div className="px-4 pt-3 pb-3.5">
-                                            {/* Section header with count + collapse toggle */}
-                                            <button
-                                                onClick={() => toggleCollapse(i)}
-                                                className="flex items-center justify-between cursor-pointer w-full mb-2.5 group"
-                                            >
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="w-4 h-4 rounded-md flex items-center justify-center"
-                                                        style={{ background: '#f0fdf4', color: '#059669' }}>
-                                                        <UsersIcon />
-                                                    </div>
-                                                    <p className="text-[10px] font-semibold uppercase tracking-wider"
-                                                        style={{ color: '#94a3b8' }}>
-                                                        Recommended Customers
-                                                    </p>
-                                                    <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full"
-                                                        style={{ background: '#dcfce7', color: '#166534' }}>
-                                                        {m.count}
-                                                    </span>
-                                                </div>
-                                                {/* Chevron */}
-                                                <svg
-                                                    className="w-3.5 h-3.5 transition-transform duration-200"
-                                                    style={{
-                                                        color: '#94a3b8',
-                                                        transform: collapsedMap[i] ? 'rotate(0deg)' : 'rotate(180deg)'
-                                                    }}
-                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </button>
+                                    {m.recommendedCustomers?.length > 0 && (() => {
+                                        const msgIds: string[] = m.recommendedCustomers.map((rc: any) => rc._id)
+                                        const selectedInMsg = msgIds.filter(id => selectedRecs.has(id))
+                                        const allInMsgSelected = msgIds.length > 0 && msgIds.every(id => selectedRecs.has(id))
+                                        const someInMsgSelected = selectedInMsg.length > 0 && !allInMsgSelected
 
-                                            {collapsedMap[i] && (
-                                                <RecommendedCard
-                                                    key={m.recommendedCustomers[0]._id}
-                                                    c={m.recommendedCustomers[0]}
-                                                    onView={setViewingCustomer}
-                                                />
-                                            )}
-
-                                            {/* Customer cards — collapsible */}
-                                            {!collapsedMap[i] && (
-                                                <div className="flex flex-col gap-2">
-                                                    {m.recommendedCustomers.map((rc: any) => (
-                                                        <RecommendedCard key={rc._id} c={rc} onView={setViewingCustomer} />
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* Collapsed summary */}
-                                            {collapsedMap[i] && (
-                                                <div className="flex items-center gap-1.5 flex-wrap mt-2">
-                                                    {m.recommendedCustomers.slice(0, 4).map((rc: any) => (
-                                                        <span key={rc._id}
-                                                            className="text-[10px] font-medium px-2 py-0.5 rounded-full border"
-                                                            style={{ background: '#f8fafc', borderColor: '#e2e8f0', color: '#64748b' }}>
-                                                            {rc.Name || '—'}
+                                        return (
+                                            <div className="px-4 pt-3 pb-3.5">
+                                                <div className="flex items-center gap-2 mb-2.5">
+                                                    <button onClick={() => toggleCollapse(i)}
+                                                        className="flex items-center cursor-pointer gap-1.5 flex-1 min-w-0 cursor-pointer group">
+                                                        <div className="w-4 h-4 rounded-md flex items-center justify-center flex-shrink-0"
+                                                            style={{ background: '#f0fdf4', color: '#059669' }}>
+                                                            <UsersIcon />
+                                                        </div>
+                                                        <p className="text-[10px] font-semibold uppercase tracking-wider flex-shrink-0"
+                                                            style={{ color: '#94a3b8' }}>
+                                                            Recommended
+                                                        </p>
+                                                        <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                                            style={{ background: '#dcfce7', color: '#166534' }}>
+                                                            {m.count}
                                                         </span>
-                                                    ))}
-                                                    {m.recommendedCustomers.length > 1 && (
-                                                        <span className="text-[10px] cursor-pointer hover:text-gray-900 font-semibold"
-                                                            style={{ color: '#94a3b8' }}
-                                                            onClick={() => toggleCollapse(i)}
+                                                        <svg
+                                                            className="w-3.5 h-3.5 transition-transform duration-200 flex-shrink-0"
+                                                            style={{ color: '#94a3b8', transform: collapsedMap[i] ? 'rotate(0deg)' : 'rotate(180deg)' }}
+                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </button>
+
+                                                    {!collapsedMap[i] && (
+                                                        <button
+                                                            onClick={() => selectAllInMessage(msgIds)}
+                                                            className="flex items-center cursor-pointer gap-1 px-2 py-1 rounded-lg border text-[9.5px] font-semibold transition-all duration-150 flex-shrink-0"
+                                                            style={allInMsgSelected
+                                                                ? { background: '#f0f9ff', borderColor: '#7dd3fc', color: '#0284c7' }
+                                                                : { background: '#f8fafc', borderColor: '#e2e8f0', color: '#94a3b8' }
+                                                            }
+                                                            onMouseEnter={e => {
+                                                                if (!allInMsgSelected) {
+                                                                    (e.currentTarget as HTMLElement).style.borderColor = '#bae6fd';
+                                                                    (e.currentTarget as HTMLElement).style.color = '#0284c7';
+                                                                    (e.currentTarget as HTMLElement).style.background = '#f0f9ff';
+                                                                }
+                                                            }}
+                                                            onMouseLeave={e => {
+                                                                if (!allInMsgSelected) {
+                                                                    (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0';
+                                                                    (e.currentTarget as HTMLElement).style.color = '#94a3b8';
+                                                                    (e.currentTarget as HTMLElement).style.background = '#f8fafc';
+                                                                }
+                                                            }}
                                                         >
-                                                            +{m.recommendedCustomers.length - 1} more
-                                                        </span>
+                                                            <SelectCheckbox
+                                                                checked={allInMsgSelected}
+                                                                indeterminate={someInMsgSelected}
+                                                                onChange={() => selectAllInMessage(msgIds)}
+                                                            />
+                                                            <span>
+                                                                {allInMsgSelected
+                                                                    ? 'Deselect all'
+                                                                    : someInMsgSelected
+                                                                        ? `${selectedInMsg.length} selected`
+                                                                        : 'Select all'}
+                                                            </span>
+                                                        </button>
                                                     )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
 
-                                    {/* Empty result */}
+                                                {collapsedMap[i] && (
+                                                    <>
+                                                        {m.recommendedCustomers.slice(0, 10).map((rc: any) => (
+                                                            <RecommendedCard
+                                                                key={rc._id} c={rc}
+                                                                onView={setViewingCustomer}
+                                                                isSelected={selectedRecs.has(rc._id)}
+                                                                onToggle={toggleRecSelection}
+                                                                shortlistedStatus={shortlistedMap[rc._id] ?? null}
+                                                            />
+                                                        ))}
+                                                        {m.recommendedCustomers.length > 1 && (
+                                                            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                                                                {m.recommendedCustomers.slice(1, 5).map((rc: any) => (
+                                                                    <span key={rc._id}
+                                                                        className="text-[10px] font-medium px-2 py-0.5 rounded-full border"
+                                                                        style={{
+                                                                            background: selectedRecs.has(rc._id) ? '#f0f9ff' : '#f8fafc',
+                                                                            borderColor: selectedRecs.has(rc._id) ? '#7dd3fc' : '#e2e8f0',
+                                                                            color: selectedRecs.has(rc._id) ? '#0284c7' : '#64748b',
+                                                                        }}>
+                                                                        {rc.Name || '—'}
+                                                                    </span>
+                                                                ))}
+                                                                <span className="text-[10px] cursor-pointer hover:text-gray-900 font-semibold"
+                                                                    style={{ color: '#94a3b8' }}
+                                                                    onClick={() => toggleCollapse(i)}>
+                                                                    +{m.recommendedCustomers.length - 1} more
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+
+                                                {!collapsedMap[i] && (() => {
+                                                    const visibleRec = recVisibleMap[i] ?? PAGE_SIZE;
+                                                    const recSlice = m.recommendedCustomers.slice(0, visibleRec);
+                                                    const recHasMore = visibleRec < m.recommendedCustomers.length;
+                                                    const recRemaining = m.recommendedCustomers.length - visibleRec;
+                                                    return (
+                                                        <div className="flex flex-col gap-2">
+                                                            {recSlice.map((rc: any) => (
+                                                                <RecommendedCard
+                                                                    key={rc._id} c={rc}
+                                                                    onView={setViewingCustomer}
+                                                                    isSelected={selectedRecs.has(rc._id)}
+                                                                    onToggle={toggleRecSelection}
+                                                                    shortlistedStatus={shortlistedMap[rc._id] ?? null}
+                                                                />
+                                                            ))}
+                                                            {recHasMore && (
+                                                                <button
+                                                                    onClick={() => setRecVisibleMap(prev => ({ ...prev, [i]: visibleRec + PAGE_SIZE }))}
+                                                                    className="w-full py-2 cursor-pointer text-[11px] font-medium rounded-xl border border-dashed transition-colors"
+                                                                    style={{ borderColor: '#e2e8f0', color: '#94a3b8', background: 'transparent' }}
+                                                                    onMouseEnter={e => {
+                                                                        (e.currentTarget as HTMLElement).style.borderColor = '#bae6fd';
+                                                                        (e.currentTarget as HTMLElement).style.color = '#0284c7';
+                                                                        (e.currentTarget as HTMLElement).style.background = '#f0f9ff';
+                                                                    }}
+                                                                    onMouseLeave={e => {
+                                                                        (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0';
+                                                                        (e.currentTarget as HTMLElement).style.color = '#94a3b8';
+                                                                        (e.currentTarget as HTMLElement).style.background = 'transparent';
+                                                                    }}
+                                                                >
+                                                                    Load {Math.min(PAGE_SIZE, recRemaining)} more
+                                                                    <span style={{ color: '#cbd5e1' }}> ({recRemaining} remaining)</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )
+                                    })()}
+
                                     {m.recommendedCustomers?.length === 0 && (
                                         <div className="px-4 py-3 flex items-center gap-2">
-                                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="#94a3b8"
-                                                viewBox="0 0 24 24">
+                                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="#94a3b8" viewBox="0 0 24 24">
                                                 <circle cx="12" cy="12" r="10" strokeWidth={1.5} />
                                                 <path strokeLinecap="round" strokeWidth={1.5} d="M12 8v4M12 16h.01" />
                                             </svg>
-                                            <p className="text-[11.5px]" style={{ color: '#94a3b8' }}>
-                                                No matching customers found.
-                                            </p>
+                                            <p className="text-[11.5px]" style={{ color: '#94a3b8' }}>No matching customers found.</p>
                                         </div>
                                     )}
                                 </div>
                             )}
 
-                            {/* USER MESSAGE */}
                             {m.role === 'user' && (
                                 <div className="max-w-[72%] px-3.5 py-2.5 rounded-2xl rounded-tr-md text-[12px] leading-relaxed"
                                     style={{ background: '#0284c7', color: '#ffffff', boxShadow: '0 2px 8px rgba(2,132,199,0.25)' }}>
@@ -958,7 +1213,6 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                         </div>
                     ))}
 
-                    {/* Typing indicator */}
                     {isLoading && (
                         <div className="flex items-start gap-2">
                             <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -970,10 +1224,7 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                                 <div className="flex items-center gap-1.5">
                                     {[0, 1, 2].map(i => (
                                         <span key={i} className="w-1.5 h-1.5 rounded-full"
-                                            style={{
-                                                background: '#0284c7', opacity: 0.6,
-                                                animation: `qa-bounce 1.2s ${i * 0.2}s infinite`,
-                                            }} />
+                                            style={{ background: '#0284c7', opacity: 0.6, animation: `qa-bounce 1.2s ${i * 0.2}s infinite` }} />
                                     ))}
                                 </div>
                             </div>
@@ -983,24 +1234,23 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input area */}
+                {anySelected && selectedId && (
+                    <SelectionBar
+                        count={selectedRecs.size}
+                        status={shortlistStatus}
+                        onStatusChange={setShortlistStatus}
+                        onShortlist={handleShortlist}
+                        onClear={clearSelection}
+                        loading={shortlistLoading}
+                        success={shortlistSuccess}
+                    />
+                )}
+
+                {/* ── FIX 2: Input area — pure CSS focus-within, no onFocusCapture/onBlurCapture ── */}
                 {selectedId && (
                     <div className="flex-shrink-0 border-t px-4 pt-3 pb-4"
                         style={{ borderColor: '#e2e8f0', background: '#ffffff' }}>
-                        <div
-                            className="flex items-end gap-2 rounded-2xl px-3.5 pt-2.5 pb-2 border-[1.5px] transition-all duration-200"
-                            style={{ background: '#ffffff', borderColor: '#e2e8f0' }}
-                            onFocusCapture={e => {
-                                const w = e.currentTarget as HTMLElement
-                                w.style.borderColor = '#7dd3fc'
-                                w.style.boxShadow = '0 0 0 3px rgba(125,211,252,0.12)'
-                            }}
-                            onBlurCapture={e => {
-                                const w = e.currentTarget as HTMLElement
-                                w.style.borderColor = '#e2e8f0'
-                                w.style.boxShadow = 'none'
-                            }}
-                        >
+                        <div className="flex items-end gap-2 rounded-2xl px-3.5 pt-2.5 pb-2 bg-white border-[1.5px] border-slate-200 transition-all duration-200 focus-within:border-sky-300 focus-within:ring-2 focus-within:ring-sky-100">
                             <div className="flex-1">
                                 <textarea
                                     ref={textareaRef}
@@ -1010,41 +1260,26 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
                                     onKeyDown={handleKeyDown}
                                     placeholder="Ask to find similar or related customers…"
                                     disabled={isLoading}
-                                    className="w-full resize-none bg-transparent outline-none leading-relaxed disabled:opacity-40"
-                                    style={{ fontSize: '12.5px', color: '#0f172a', minHeight: '24px' }}
+                                    className="w-full resize-none bg-transparent outline-none leading-relaxed disabled:opacity-40 text-slate-900"
+                                    style={{ fontSize: '12.5px', minHeight: '24px' }}
                                 />
-                                <div className="flex items-center justify-between pt-1.5 mt-1 border-t"
-                                    style={{ borderColor: '#f1f5f9' }}>
+                                <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-slate-100">
                                     <div className="flex items-center gap-2">
                                         {hints.slice(0, 2).map(h => (
                                             <button key={h} onClick={() => setPrompt(h)}
-                                                className="text-[9.5px] font-medium px-2 py-0.5 rounded-lg transition-all border"
-                                                style={{ borderColor: '#e2e8f0', background: '#f8fafc', color: '#94a3b8' }}
-                                                onMouseEnter={e => {
-                                                    (e.currentTarget as HTMLElement).style.borderColor = '#bae6fd'
-                                                    ;(e.currentTarget as HTMLElement).style.background = '#f0f9ff'
-                                                    ;(e.currentTarget as HTMLElement).style.color = '#0284c7'
-                                                }}
-                                                onMouseLeave={e => {
-                                                    (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'
-                                                    ;(e.currentTarget as HTMLElement).style.background = '#f8fafc'
-                                                    ;(e.currentTarget as HTMLElement).style.color = '#94a3b8'
-                                                }}>
+                                                className="text-[9.5px] font-medium cursor-pointer px-2 py-0.5 rounded-lg transition-all border border-slate-200 bg-stone-50 text-slate-400 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-600">
                                                 {h}
                                             </button>
                                         ))}
                                     </div>
-                                    <span className="text-[9px] font-mono" style={{ color: '#cbd5e1' }}>↵ send</span>
+                                    <span className="text-[9px] font-mono text-slate-300">↵ send</span>
                                 </div>
                             </div>
-
                             <button
                                 onClick={handleSubmit}
                                 disabled={isLoading || !prompt.trim()}
-                                className="w-8 h-8 mb-1 rounded-xl flex items-center justify-center transition-all duration-150 flex-shrink-0 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="w-8 h-8 mb-1 rounded-xl flex items-center justify-center transition-all duration-150 flex-shrink-0 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110"
                                 style={{ background: '#0284c7', boxShadow: '0 2px 8px rgba(2,132,199,0.3)' }}
-                                onMouseEnter={e => { if (!isLoading && prompt.trim()) (e.currentTarget as HTMLElement).style.background = '#0369a1' }}
-                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#0284c7'}
                             >
                                 {isLoading
                                     ? <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent"
@@ -1076,6 +1311,10 @@ const RecommendAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
         @keyframes drawer-in {
           from { transform: translateX(100%); opacity: 0; }
           to   { transform: translateX(0);    opacity: 1; }
+        }
+        @keyframes bar-in {
+          from { transform: translateY(8px); opacity: 0; }
+          to   { transform: translateY(0);   opacity: 1; }
         }
       `}</style>
         </div>

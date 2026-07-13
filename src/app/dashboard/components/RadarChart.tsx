@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useDashboardData } from "../data/useDashboardSectionOne";
-import { getCustomer, getFilteredCustomer } from "@/store/customer";
+import { getRadarChartStats } from "@/store/customer";
+
+
 
 // Types
 interface User {
-  id: number;
+  id: string | number;
   name: string;
   customers: number;
+  percentage?: number;
 }
 
 interface UserData {
@@ -33,17 +36,6 @@ const ChevronDown = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Mock data structure - replace with your actual backend data
-/* const mockUserData: UserData = {
-  users: [
-    { id: 1, name: "John Doe", speed: 185 },
-    { id: 2, name: "Jane Smith", speed: 75 },
-    { id: 3, name: "Mike Johnson", speed: 240 },
-    { id: 4, name: "Sarah Williams", speed: 140 },
-    { id: 5, name: "Tom Brown", speed: 295 },
-  ],
-}; */
-
 export default function RadarChart() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -52,11 +44,36 @@ export default function RadarChart() {
   const [dropdownDirection, setDropdownDirection] = useState<'bottom' | 'top'>('bottom');
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
   const { userCustomers, setUserCustomers } = useDashboardData();
-  const [selectedUser, setSelectedUser] = useState(userCustomers.users[0]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(userCustomers.users[0] || null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownButtonRef = useRef<HTMLButtonElement>(null);
-  const [customerCount, setCustomerCount] = useState(0);
 
+  // -------------------- FETCH OPTIMIZED DATA --------------------
+  const RedarChartDataFetch = async () => {
+    try {
+      const response = await getRadarChartStats();
+      
+      // Defensive check for Axios vs Standard Fetch unwrapping
+      const payload = response?.data?.data ? response.data.data : response?.data;
+
+      if (!payload || payload.length === 0) {
+        setUserCustomers({ users: [] });
+        return;
+      }
+
+      setUserCustomers({ users: payload });
+      setSelectedUser(payload[0] || null);
+
+    } catch (error) {
+      console.error("Error fetching radar chart data:", error);
+    }
+  };
+
+  useEffect(() => {
+    RedarChartDataFetch();
+  }, []);
+
+  // -------------------- UI & ANIMATION LOGIC --------------------
   useEffect(() => {
     const updateDimensions = () => {
       const container = document.getElementById("chart-container");
@@ -64,9 +81,8 @@ export default function RadarChart() {
         const containerWidth = container.offsetWidth;
         const containerHeight = container.offsetHeight;
 
-        // Use the available container space for responsive sizing
         const width = Math.min(containerWidth, 800);
-        const height = Math.min(containerHeight * 0.9, width * 0.75); // Use container height as base
+        const height = Math.min(containerHeight * 0.9, width * 0.75); 
         setDimensions({ width, height });
       }
     };
@@ -74,7 +90,6 @@ export default function RadarChart() {
     updateDimensions();
     window.addEventListener("resize", updateDimensions);
 
-    // Use ResizeObserver for better container size detection
     const container = document.getElementById("chart-container");
     if (container) {
       const resizeObserver = new ResizeObserver(updateDimensions);
@@ -88,7 +103,6 @@ export default function RadarChart() {
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  // Calculate dropdown position based on available space
   const calculateDropdownPosition = () => {
     if (!dropdownButtonRef.current) return 'bottom';
 
@@ -96,10 +110,8 @@ export default function RadarChart() {
     const spaceBelow = window.innerHeight - buttonRect.bottom;
     const spaceAbove = buttonRect.top;
 
-    // Approximate dropdown height (5 items * ~48px each)
     const estimatedDropdownHeight = 240;
 
-    // If not enough space below but enough space above, open upwards
     if (spaceBelow < estimatedDropdownHeight && spaceAbove >= estimatedDropdownHeight) {
       return 'top';
     }
@@ -109,14 +121,12 @@ export default function RadarChart() {
 
   const handleDropdownToggle = () => {
     if (!isDropdownOpen) {
-      // When opening dropdown, calculate the best position
       const direction = calculateDropdownPosition();
       setDropdownDirection(direction);
     }
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -135,11 +145,10 @@ export default function RadarChart() {
     };
   }, []);
 
-  // Animate needle when user changes
   useEffect(() => {
     setAnimatedSpeed(0);
     const targetSpeed = selectedUser?.customers || 0;
-    const duration = 1500; // 1.5 seconds
+    const duration = 1500; 
     const steps = 60;
     const increment = targetSpeed / steps;
     const stepDuration = duration / steps;
@@ -159,20 +168,12 @@ export default function RadarChart() {
   }, [selectedUser]);
 
   const getZoneColor = (speed: number): string => {
-    if (speed <= 90) return "#22c55e"; // green
-    if (speed <= 210) return "#9ca3af"; // gray
-    return "#ef4444"; // red
-  };
-
-  const getZoneLabel = (speed: number): string => {
-    if (speed <= 90) return "Safe";
-    if (speed <= 210) return "Normal";
-    return "High";
+    if (speed <= 90) return "#22c55e"; 
+    if (speed <= 210) return "#9ca3af"; 
+    return "#ef4444"; 
   };
 
   const calculateNeedleAngle = (speed: number): number => {
-    // Convert speed (0-300) to angle (-135 to 135 degrees)
-    // 0 speed = -135°, 150 speed = 0° (top), 300 speed = 135°
     const normalizedSpeed = Math.min(Math.max(speed, 0), 300);
     return -135 + (normalizedSpeed / 300) * 270;
   };
@@ -208,7 +209,6 @@ export default function RadarChart() {
   };
 
   const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
-
     const svg = event.currentTarget;
     const pt = svg.createSVGPoint();
     pt.x = event.clientX;
@@ -224,7 +224,6 @@ export default function RadarChart() {
   };
 
   const handleMouseLeave = () => {
-    console.log("Mouse left SVG"); // Add this
     setTooltip({ show: false, x: 0, y: 0, value: 0 });
     setHoveredZone(null);
   };
@@ -243,76 +242,6 @@ export default function RadarChart() {
   const innerRadius = outerRadius * 0.6;
   const needleLength = outerRadius * 0.85;
   const needleAngle = calculateNeedleAngle(animatedSpeed);
-
-
-  const getUsers = async () => {
-    const response = await getCustomer();
-    setCustomerCount(response.length);
-    const users = response.filter((item: any) => {
-  return Array.isArray(item.AssignTo) && item.AssignTo.length > 0;
-});
-    console.log("users are ", users);
-    return users
-  }
-
-  const RedarChartDataFetch = async () => {
-    try {
-      const allCustomers = await getUsers(); // all customers with AssignTo
-
-      if (!allCustomers || allCustomers.length === 0) {
-        console.log("No customers found");
-        setUserCustomers({ users: [] });
-        return;
-      }
-
-      // Step 1: Create a map of unique users
-      const userMap: Record<string, { id: string; name: string; customers: number }> = {};
-
-   allCustomers.forEach((customer: any) => {
-  const assignedUsers = customer.AssignTo || [];
-
-  assignedUsers.forEach((user: any) => {
-    const userId = user.id || user._id;
-    const userName = user.name;
-
-    if (!userId || !userName) return;
-
-    if (!userMap[userId]) {
-      userMap[userId] = { id: userId, name: userName, customers: 0 };
-    }
-
-    userMap[userId].customers += 1;
-  });
-});
-
-      // Step 2: Convert map to array
-      /*   const result = Object.values(userMap); */
-      const customerLength = await getCustomer();
-      const totalCustomers = customerLength.length;
-
-      const result = Object.values(userMap).map(user => ({
-        ...user,
-        percentage: totalCustomers > 0
-          ? Math.round((user.customers / totalCustomers) * 100)
-          : 0
-      }));
-
-      setUserCustomers({ users: result });
-      setSelectedUser(result[0] || null);
-
-      console.log("Final Users With Filtered Customer Count:", result);
-    } catch (error) {
-      console.error("Error fetching radar chart data:", error);
-    }
-  };
-
-
-
-
-  useEffect(() => {
-    RedarChartDataFetch();
-  }, [])
-
 
   return (
     <div className="flex flex-col w-full h-auto min-h-[350px]">
@@ -510,7 +439,7 @@ export default function RadarChart() {
                     textAnchor="middle"
                     className="text-sm font-medium fill-white"
                   >
-                    Total: {customerCount}
+                    Percent: {selectedUser?.percentage || 0}%
                   </text>
                   <polygon
                     points={`${tooltip.x - 10},${tooltip.y - 5} ${tooltip.x + 10},${tooltip.y - 5} ${tooltip.x},${tooltip.y + 10}`}
@@ -521,8 +450,9 @@ export default function RadarChart() {
             </svg>
           </div>
 
-          {/* User selector dropdown with smart positioning */}
-          {(userCustomers.users.length > 0) && <div className="mt-4 sm:mt-6 flex justify-center shrink-0">
+          {/* User selector dropdown */}
+          {(userCustomers.users.length > 0) && (
+            <div className="mt-4 sm:mt-6 flex justify-center shrink-0">
             <div className="relative w-full max-w-[200px]" ref={dropdownRef}>
               <button
                 ref={dropdownButtonRef}
@@ -533,50 +463,49 @@ export default function RadarChart() {
                   {selectedUser?.name}
                 </span>
                 <ChevronDown
-                  className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""
-                    }`}
+                  className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
                 />
               </button>
 
               {(isDropdownOpen) && (
                 <div
                   className={`absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto ${dropdownDirection === 'top'
-                    ? 'bottom-full mb-1'  // Opens above the button
-                    : 'top-full mt-1'     // Opens below the button (default)
+                    ? 'bottom-full mb-1'  
+                    : 'top-full mt-1'     
                     }`}
                 >
-
                   {userCustomers.users.map((user, index) => {
-
-                    return <button
-                      key={index}
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-blue-50 transition-colors text-xs sm:text-sm ${selectedUser?.id === user?.id
-                        ? "bg-blue-100 text-blue-700 font-semibold"
-                        : "text-gray-700"
-                        }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="truncate">{user?.name}</span>
-                        <span className={`text-xs sm:text-sm font-medium ml-2 ${user?.customers <= 90
-                          ? 'text-green-600'
-                          : user.customers <= 210
-                            ? 'text-gray-600'
-                            : 'text-red-600'
-                          }`}>
-                          {user?.customers}
-                        </span>
-                      </div>
-                    </button>
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-blue-50 transition-colors text-xs sm:text-sm ${selectedUser?.id === user?.id
+                          ? "bg-blue-100 text-blue-700 font-semibold"
+                          : "text-gray-700"
+                          }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="truncate">{user?.name}</span>
+                          <span className={`text-xs sm:text-sm font-medium ml-2 ${user?.customers <= 90
+                            ? 'text-green-600'
+                            : user.customers <= 210
+                              ? 'text-gray-600'
+                              : 'text-red-600'
+                            }`}>
+                            {user?.customers}
+                          </span>
+                        </div>
+                      </button>
+                    )
                   })}
                 </div>
               )}
             </div>
           </div>
-          }
+          )}
         </div>
       </div>
     </div>

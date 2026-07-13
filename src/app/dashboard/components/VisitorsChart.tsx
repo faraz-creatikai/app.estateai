@@ -1,4 +1,5 @@
 "use client";
+import { getVisiterChartStats } from "@/store/customer";
 import React, { useEffect, useState } from "react";
 import {
   BarChart,
@@ -10,7 +11,8 @@ import {
   Line,
   ResponsiveContainer,
 } from "recharts";
-import { getCustomer } from "@/store/customer";
+// 🚨 Import your new API endpoint here!
+
 
 // -------------------- TYPES --------------------
 
@@ -96,120 +98,35 @@ const CustomDot: React.FC<DotProps> = ({ cx, cy, stroke }) => {
 // -------------------- MAIN COMPONENT --------------------
 
 export default function VisitorsChart() {
-  const [customers, setCustomers] = useState<any[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [activeIndicators, setActiveIndicators] = useState<ActiveIndicators>({
+    oldVisitor: true,
+    newVisitor: true,
+    lastMonth: true,
+    avg: true,
+  });
 
-  const [activeIndicators, setActiveIndicators] =
-    useState<ActiveIndicators>({
-      oldVisitor: true,
-      newVisitor: true,
-      lastMonth: true,
-      avg: true,
-    });
-
-  // -------------------- FETCH DATA --------------------
-
+  // -------------------- FETCH OPTIMIZED DATA --------------------
   useEffect(() => {
-    const fetchData = async () => {
-      const data = await getCustomer();
-      setCustomers(data || []);
+    const fetchChartData = async () => {
+      try {
+        const response = await getVisiterChartStats();
+        
+        // Defensive check for Axios vs Standard Fetch unwrapping
+        const payload = response?.data?.data ? response.data.data : response?.data;
+        
+        if (payload && Array.isArray(payload)) {
+          setChartData(payload);
+        }
+      } catch (error) {
+        console.error("Failed to load visitor chart stats:", error);
+      }
     };
-    fetchData();
+    
+    fetchChartData();
   }, []);
 
-  // -------------------- PROCESS DATA --------------------
-
-  useEffect(() => {
-    if (!customers.length) return;
-
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const monthShort = now.toLocaleString("default", {
-      month: "short",
-    }); // Jan, Feb, Mar
-
-    const firstDayCurrentMonth = new Date(currentYear, currentMonth, 1);
-    const firstDayLastMonth = new Date(currentYear, currentMonth - 1, 1);
-    const lastDayLastMonth = new Date(currentYear, currentMonth, 0);
-
-    // ---- Filters ----
-    const oldCustomers = customers.filter(
-      (c) => new Date(c.createdAt) < firstDayCurrentMonth
-    );
-
-    const newCustomers = customers.filter((c) => {
-      const d = new Date(c.createdAt);
-      return (
-        d.getMonth() === currentMonth &&
-        d.getFullYear() === currentYear
-      );
-    });
-
-    const lastMonthCustomers = customers.filter((c) => {
-      const d = new Date(c.createdAt);
-      return d >= firstDayLastMonth && d <= lastDayLastMonth;
-    });
-
-    // ---- Average per month ----
-    const groupedByMonth: Record<string, number> = {};
-    customers.forEach((c) => {
-      const d = new Date(c.createdAt);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      groupedByMonth[key] = (groupedByMonth[key] || 0) + 1;
-    });
-
-    const avgPerMonth =
-      Object.values(groupedByMonth).reduce((a, b) => a + b, 0) /
-      Object.keys(groupedByMonth).length;
-
-    // ---- Generate Dates (1 → today, clean intervals) ----
-    const today = now.getDate();
-    const step = Math.ceil(today / 6);
-
-    const result: ChartData[] = [];
-
-    for (let day = 1; day <= today; day += step) {
-       const fullDate = new Date(currentYear, currentMonth, day);
-
-  const formattedDate = fullDate.toLocaleString("default", {
-    month: "short",
-    day: "numeric",
-  });
-      result.push({
-        date: `${formattedDate}`,   // ✅ UPDATED HERE
-        newVisitor: newCustomers.filter(
-          (c) => new Date(c.createdAt).getDate() <= day
-        ).length,
-        oldVisitor: oldCustomers.length,
-        lastMonth: lastMonthCustomers.length,
-        avg: Math.round(avgPerMonth),
-      });
-    }
-
-    // Ensure last date included
-    if (!result.find((r) => r.date === `${monthShort} ${today}`)) {
-        const lastFullDate = new Date(currentYear, currentMonth, today);
-
-  const lastFormattedDate = lastFullDate.toLocaleString("default", {
-    month: "short",
-    day: "numeric",
-  });
-      result.push({
-        date: lastFormattedDate,  // ✅ UPDATED HERE
-        newVisitor: newCustomers.length,
-        oldVisitor: oldCustomers.length,
-        lastMonth: lastMonthCustomers.length,
-        avg: Math.round(avgPerMonth),
-      });
-    }
-
-    setChartData(result);
-  }, [customers]);
-
   // -------------------- TOGGLE --------------------
-
   const toggleIndicator = (key: keyof ActiveIndicators) => {
     setActiveIndicators((prev) => {
       const activeCount = Object.values(prev).filter(Boolean).length;
@@ -220,8 +137,7 @@ export default function VisitorsChart() {
 
   const hasActiveIndicators = Object.values(activeIndicators).some(Boolean);
 
-  // -------------------- UI (UNCHANGED) --------------------
-
+  // -------------------- UI --------------------
   return (
     <div className="w-full bg-white p-4 max-w-4xl shadow-md">
       <div className="flex justify-end mb-9">

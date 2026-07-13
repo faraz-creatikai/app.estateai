@@ -36,6 +36,7 @@ import { FaRobot } from "react-icons/fa";
 import { TbSocial } from "react-icons/tb";
 import { RiFilePaper2Fill } from "react-icons/ri";
 import { GrConfigure } from "react-icons/gr";
+import { sidebarLogoPath } from "@/app/data/PlatformData";
 
 // This is sample data.
 const data = {
@@ -302,9 +303,22 @@ const data = {
       icon: GrConfigure,
       items:[
         {
+          title:"AI",
+          url:"/configuration/ai"
+        },
+        {
           title: "Tabbly",
           url: "/configuration/tabbly",
+        },
+        {
+          title:"whatsapp",
+          url:"/configuration/whatsapp"
+        },
+        {
+          title:"system",
+          url:"/configuration/system"
         }
+        
       ]
     },
     {
@@ -354,6 +368,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if(item.title === "Ai Agents" && admin?.role !== "administrator"){
       return false;
     }
+    if(item.title === "Configuration" && admin?.role !== "administrator"){
+      return false
+    }
     return true;
   }).map((item) => {
     // Handle Settings submenu permissions
@@ -383,7 +400,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <ShieldUser className="w-6 h-6" />
         ) : (
           <img
-            src="/applogo.jpeg"
+            src={sidebarLogoPath || "/applogo.jpeg"}
             alt="App Logo"
             className="h-12 w-40"
           />

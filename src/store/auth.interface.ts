@@ -67,6 +67,7 @@ export interface AuthApiResponse {
 export interface usersGetDataInterface{
   _id:string;
   name:string;
+  role?: string;
 }
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { getCustomer } from "@/store/customer";
+import { getCustomer, getLeadSourcesStats } from "@/store/customer";
 import { AppWindow } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -392,7 +392,8 @@ const LeadSources: React.FC = () => {
   const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d");
   const [spinning, setSpinning] = useState(false);
 
-  // ── Data fetch ─────────────────────────────────────────────────────────────
+
+// ── Data fetch ─────────────────────────────────────────────────────────────
 const fetchLeadSources = async (p: "7d" | "30d" | "90d") => {
   setLoading(true);
 
@@ -406,34 +407,37 @@ const fetchLeadSources = async (p: "7d" | "30d" | "90d") => {
         { id: "google",    name: "Google",    count: 0, change: 0, color: "#FBBC05", icon: <GoogleIcon /> },
         { id: "whatsapp",  name: "WhatsApp",  count: 0, change: 0, color: "#25D366", icon: <WhatsAppIcon /> },
         { id: "newspaper", name: "Newspaper", count: 0, change: 0, color: "#8B5CF6", icon: <NewspaperIcon /> },
-         { id: "website", name: "Website",    count: 0, change: 0, color: "#8B5CF6", icon: <AppWindow /> },
+        { id: "website",   name: "Website",   count: 0, change: 0, color: "#8B5CF6", icon: <AppWindow /> },
       ],
     };
 
-    const customers = await getCustomer();
-    console.log("customer data", customers);
+    const response = await getLeadSourcesStats(); 
 
-    const sourceCount: Record<string, number> = {};
+    // SAFELY handle Axios wrapping (.data.data) or standard fetch (.data)
+    const payload = response?.data?.data ? response.data.data : response?.data;
 
-    customers.forEach((customer: any) => {
-      if (!customer.ReferenceId) return;
+    // Defensive check: Ensure the payload and the 'counts' object exist
+    if (!payload || !payload.counts) {
+      setLoading(false);
+      setSpinning(false);
+      return;
+    }
 
-      const ref = customer.ReferenceId.toLowerCase().trim();
+    // 🚀 Extract the nested 'counts' object and 'total' number
+    const { counts, total: trueTotal } = payload; 
 
-      sourceCount[ref] = (sourceCount[ref] || 0) + 1;
-    });
-
+    // Map the backend counts to our UI stub
     const updatedSources = stub.sources.map((src) => ({
       ...src,
-      count: sourceCount[src.id] || 0,
+      // Now we correctly look inside the extracted 'counts' object
+      count: counts[src.id] || 0,
     }));
 
-    const total = updatedSources.reduce((acc, s) => acc + s.count, 0);
-
+    // Update the state using the trueTotal from the backend
     setData({
       ...stub,
       sources: updatedSources,
-      total,
+      total: trueTotal, 
     });
 
   } catch (e) {

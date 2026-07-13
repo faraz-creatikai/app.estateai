@@ -22,8 +22,16 @@ export const API_ROUTES = {
     ASSIGNCONTACT: `${BASE_URL}/contact/assign`
   },
   CUSTOMER: {
+    DASHBOARD_STATS_COUNT:`${BASE_URL}/customer/dashboard/stats-count`,
+    LEADSOURCE_STATS: `${BASE_URL}/customer/dashboard/lead-source-stats`,
+    LEADTEMPERATURE_STATS:`${BASE_URL}/customer/dashboard/lead-temperature-stats`,
+    VISITER_CHART_STATS:`${BASE_URL}/customer/dashboard/visiter-chart-stats`,
+    FOLLOWUP_CHART_STATS:`${BASE_URL}/customer/dashboard/followup-chart-stats`,
+    LOCATION_STATS:`${BASE_URL}/customer/dashboard/customer-location-stats`,
+    RADAR_CHART_STATS:`${BASE_URL}/customer/dashboard/radar-chart-stats`,
     GET_ALL: `${BASE_URL}/customer`,
-     GET_ALL_TOTAL: `${BASE_URL}/customer/all`,
+    GET_ALL_TOTAL: `${BASE_URL}/customer/all`,
+    GET_CUSTOMER_COUNT:`${BASE_URL}/customer/count`,
     GET_FAVOURITES_CUSTOMER: `${BASE_URL}/customer/favouriteS/all`,
     GET_TODAY_ALL: `${BASE_URL}/customer/today`,
     GET_BY_ID: (id: string) => `${BASE_URL}/customer/${id}`,
@@ -48,6 +56,11 @@ export const API_ROUTES = {
     GET_CLOSEDDEAL_BY_PARAMS: (params: string) => `${BASE_URL}/customer/closed-deals?${params}`,
     CLOSEDEAL: (id: string) => `${BASE_URL}/customer/close-deal/${id}`,
     REOPENDEAL: (id: string) => `${BASE_URL}/customer/reopen-deal/${id}`,
+
+    ADDSHORTLIST: `${BASE_URL}/customer/shortlist`,
+    GETSHORTLIST: (id: string) => `${BASE_URL}/customer/shortlist/${id}`,
+    REMOVESHORTLIST:`${BASE_URL}/customer/shortlist`,
+    UPDATESHORTLIST: `${BASE_URL}/customer/shortlist`,
   },
   COMPANYPROJECTS: {
     GET_ALL: `${BASE_URL}/com/pro`,
@@ -110,8 +123,9 @@ export const API_ROUTES = {
     UPDATE: (id: string) => `${BASE_URL}/aiagent/${id}`,
     DELETE: (id: string) => `${BASE_URL}/aiagent/${id}`,
     ASSIGNAIAGENT: `${BASE_URL}/aiagent/assign`,
+    RUNWEBHOOKAGENT:`${BASE_URL}/aiagent/run-webhook-agent`
   },
-  TABBLY:{
+  TABBLY: {
     GETCURRENTAGENT: `${BASE_URL}/tabbly/current-agent`,
     GETAGENTVOICES: `${BASE_URL}/tabbly/agent-voices`,
     UPDATEAGENT: `${BASE_URL}/tabbly/update-agent`,
@@ -386,7 +400,11 @@ export const API_ROUTES = {
       ADD: `${BASE_URL}/v1/templates`,
       UPDATE: (id: string) => `${BASE_URL}/v1/templates/${id}`,
       DELETE: (id: string) => `${BASE_URL}/v1/templates/${id}`,
-      WHATSAPPALL: `${BASE_URL}/v1/messages/whatsapp`
+      WHATSAPPALL: `${BASE_URL}/v1/messages/whatsapp`,
+      WHATSAPP_CONNECTION_STATUS: `${BASE_URL}/v1/messages/whatsapp-connection-status`,
+      WHATSAPP_CONNECTION_LOGOUT: `${BASE_URL}/v1/messages/whatsapp-connection-logout`,
+      WHATSAPP_STOP_IDLE:`${BASE_URL}/v1/messages/whatsapp-stop-idle`,
+      WHATSAPP_CONNECTION_PAIRING_CODE: `${BASE_URL}/v1/messages/whatsapp-connection-pairing-code`,
     },
     CALL: {
       CALLCUSTOMER: `${BASE_URL}/v1/messages/call`
@@ -431,6 +449,12 @@ export const API_ROUTES = {
     SIGNUP: `${BASE_URL}/admin/signup`,
     LOGIN: `${BASE_URL}/admin/login`,
     LOGOUT: `${BASE_URL}/admin/logout`,
+    AI:{
+      SAVE_API_KEY:`${BASE_URL}/admin/ai/save-api-key`,
+      GET_ALL:`${BASE_URL}/admin/ai/get-all`,
+      UPDATE_API_KEY:(id:string)=>`${BASE_URL}/admin/ai/update-api-key/${id}`,
+      DELETE_API_KEY:(id:string)=>`${BASE_URL}/admin/ai/delete-api-key/${id}`
+    },
 
     // 🔐 Protected Routes
     CHECK: `${BASE_URL}/admin/check`,
@@ -443,6 +467,11 @@ export const API_ROUTES = {
     UPDATE_PASSWORD: (id: String) => `${BASE_URL}/admin/${id}/password`,
     DEVLOGIN: `${BASE_URL}/admin/mode/dev/login`,
     DELETE: (id: String) => `${BASE_URL}/admin/${id}`,
+    MY_ACTIVE_AGENTS: `${BASE_URL}/admin/my-active-agents`,
+
+    GENERATE_CRM_API_KEY:`${BASE_URL}/admin/generate-crm-api-key`,
+    DELETE_CRM_API_KEY:(keyId:string)=>`${BASE_URL}/admin/crm-api-key/${keyId}`,
+    GET_CRM_API_KEYS: `${BASE_URL}/admin/crm-api-keys`
   },
 
   REQUESTUSER: {

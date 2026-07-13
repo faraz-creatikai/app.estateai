@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { FaArrowTrendUp } from "react-icons/fa6";
 import { MdOutlineFileDownload } from "react-icons/md";
 import { LuCalendar, LuChartNoAxesColumnIncreasing, LuCalendarRange } from "react-icons/lu";
-import { getCustomer } from "@/store/customer";
+import { getCustomer, getDashboardStatsCount} from "@/store/customer";
 import { useDashboardData } from "../data/useDashboardSectionOne";
 import { getAllCustomerFollowups } from "@/store/customerFollowups";
 import { getIncomeMarketing } from "@/store/financial/incomemarketing/incomemarketing";
@@ -53,81 +53,43 @@ export default function DashboardSectionOne() {
 
 const DashboardSectionOneDataFetch = async () => {
   try {
-    // Run all APIs in parallel
-    const [
-      LeadsResponse,
-      FollowupResponseRaw,
-      ContactResponse,
-      IncomeResponse,
-    ] = await Promise.all([
-      getCustomer(),
-      getAllCustomerFollowups(),
-      getContact(),
-      getIncomeMarketing(),
-    ]);
+    // 1. Fetch the computed stats from the backend
+    const response = await getDashboardStatsCount();
+    
+    // 2. Extract the pre-calculated numbers
+    const {
+      totalCustomers,
+      convertedLeads,
+      totalContacts,
+      totalIncome,
+    } = response.data;
 
-    // 🔹 Leads
-    if (LeadsResponse) {
-      const totalCustomer = LeadsResponse.length;
-
-      setDashboardSectionOneCardData((prev) => {
-        const newData = [...prev];
-        newData[0] = { ...newData[0], value: totalCustomer };
-        return newData;
-      });
-    }
-
-    // 🔹 Followups
-    if (FollowupResponseRaw) {
-      const FollowupResponse = FollowupResponseRaw.map((item: any) => ({
-        customerid: item.customer._id,
-        StatusType: item.StatusType,
-      }));
-
-      const convertedLeads = FollowupResponse.filter(
-        (item, index, arr) =>
-          arr.findIndex((row) => row.customerid === item.customerid) === index
-      ).length;
-
-      setDashboardSectionOneCardData((prev) => {
-        const newData = [...prev];
-        newData[1] = { ...newData[1], value: convertedLeads };
-        return newData;
-      });
-    }
-
-    // 🔹 Contacts
-    if (ContactResponse) {
-      const totalContacts = ContactResponse.length;
-
-      setDashboardSectionOneCardData((prev) => {
-        const newData = [...prev];
-        newData[2] = { ...newData[2], value: totalContacts };
-        return newData;
-      });
-    }
-
-    // 🔹 Income
-    if (IncomeResponse) {
-      const totalRevenue = IncomeResponse.reduce(
-        (sum: number, item: any) => sum + (Number(item.Income) || 0),
-        0
-      );
-
-      setDashboardSectionOneCardData((prev) => {
-        const newData = [...prev];
-        newData[3] = {
-          ...newData[3],
-          value: totalRevenue,
-          prefix: "₹",
-        };
-        return newData;
-      });
-    }
+    // 3. Directly update the state
+    setDashboardSectionOneCardData((prev) => {
+      const newData = [...prev];
+      
+      // 🔹 Leads
+      newData[0] = { ...newData[0], value: totalCustomers || 0 };
+      
+      // 🔹 Followups (Converted Leads)
+      newData[1] = { ...newData[1], value: convertedLeads || 0 };
+      
+      // 🔹 Contacts
+      newData[2] = { ...newData[2], value: totalContacts || 0 };
+      
+      // 🔹 Income
+      newData[3] = { 
+        ...newData[3], 
+        value: totalIncome || 0, 
+        prefix: "₹" 
+      };
+      
+      return newData;
+    });
 
     setDataLoading(true);
   } catch (err) {
-    console.error(err);
+    console.error("Failed to load dashboard stats:", err);
   }
 };
 

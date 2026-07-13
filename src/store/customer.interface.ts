@@ -94,6 +94,7 @@ export interface customerGetDataInterface {
   GoogleMap?: string;
   Price?: string;
   LeadType?: string;
+  Shortlisted?:number;
 
   CustomerFields?: any;
   createdAt?: string;
@@ -152,6 +153,7 @@ export interface customerAssignInterface {
   customerIds?: string[];
   campaign?: string | string[];
   assignMode?: "selected" | "campaign" | "all";
+  action?: "assign" | "remove";
 }
 
 export interface contactAssignInterface {

@@ -1,41 +1,37 @@
 import { useAuth } from "@/context/AuthContext";
-import { getAIAgent } from "@/store/aiagent/aiagent";
-import { getAdminById } from "@/store/auth";
+import { getMyActiveAgents } from "@/store/auth";
 import toast from "react-hot-toast";
+
 
 export const useAIAgents = () => {
     const { admin } = useAuth();
 
-    const getUserAgents = async () => {
+    const fetchMyAgents = async () => {
+        if (!admin) return [];
 
-        /*  const res = await getAIAgent();
-      console.log(" user agents are ",res) */
+        try {
+            // 1. Single optimized call for both Admins and Users
+            const response = await getMyActiveAgents();
+            
+            // 2. Safely unwrap Axios (.data.data) or Standard Fetch (.data)
+            const payload = response?.data ? response.data : response?.data;
 
-        if (admin) {
-            const res = await getAdminById(admin._id as string);
-
-            if (!res) {
-                toast.error(" failed to get Ai Agents, try again later ");
-                return;
+            if (!payload || !Array.isArray(payload)) {
+                return [];
             }
 
-            const AssignedAIAgents = res.adminData?.assignedAIAgents.filter((e: any) => e.status === "Active");
-            console.log(" user assigned agents naruto", AssignedAIAgents)
-            return AssignedAIAgents;
-        }
+            // 3. Normalize the ID format for the UI component and return
+            return payload.map((e: any) => ({
+                ...e,
+                id: e.id || e._id, 
+            }));
 
-        return [];
+        } catch (error) {
+            console.error("Failed to fetch assigned agents:", error);
+            toast.error("Failed to get AI Agents, try again later");
+            return [];
+        }
     };
 
-    const getAdminAgents = async () => {
-        let res = await getAIAgent();
-        res = res.map((e: any) => ({
-            id: e._id,
-            ...e,
-        }));
-        res = res.filter((e: any) => e.status === "Active")
-        return res;
-    }
-
-    return { getUserAgents, getAdminAgents };
+    return { fetchMyAgents };
 };

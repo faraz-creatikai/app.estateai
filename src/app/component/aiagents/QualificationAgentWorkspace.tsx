@@ -72,8 +72,24 @@ const Avatar = ({ name }: { name: string }) => {
     )
 }
 
+
+interface AgentWebhookConfig {
+    webhookUrl?: string | null;
+    webhookMethod?: string | null;
+    webhookHeaders?: Record<string, string> | null;
+    webhookPayload?: Record<string, any> | null;
+    promptRole?: string | null;
+}
+
+
 /* ─────────────────────────────────────────────── */
-const QualificationAgentWorkspace = ({ isOpen }: { isOpen: boolean }) => {
+const QualificationAgentWorkspace = ({
+    isOpen,
+    agent,
+}: {
+    isOpen: boolean;
+    agent?: AgentWebhookConfig;
+}) => {
     const [customers, setCustomers] = useState<any[]>([])
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const [prompt, setPrompt] = useState('')

@@ -10,7 +10,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpRight, Bot, ChevronsLeft, ChevronsRight, PlusSquare, Sparkles, UserPlus, Zap } from "lucide-react";
 import ProtectedRoute from "../component/ProtectedRoutes";
 import toast, { Toaster } from "react-hot-toast";
-import { getCustomer, deleteCustomer, getFilteredCustomer, updateCustomer, assignCustomer, deleteAllCustomer, getDuplicateContacts, getTodayCustomer, startCallByAIAgent, getCallLogs, getCallReport, closeCustomerDeal } from "@/store/customer";
+import { getCustomer, deleteCustomer, getFilteredCustomer, updateCustomer, assignCustomer, deleteAllCustomer, getDuplicateContacts, getTodayCustomer, startCallByAIAgent, getCallLogs, getCallReport, closeCustomerDeal, getCustomerCount } from "@/store/customer";
 import { CheckDialogDataInterface, CustomerAdvInterface, customerAssignInterface, customerGetDataInterface, DeleteDialogDataInterface } from "@/store/customer.interface";
 import DeleteDialog from "../component/popups/DeleteDialog";
 import { getCampaign } from "@/store/masters/campaign/campaign";
@@ -87,6 +87,8 @@ import SocialMiningAgentWorkspace from "../component/aiagents/MiningAgentWorkspa
 import SocialAgentWorkspace from "../component/aiagents/SocialAgentWorkspace";
 import { FaHandshakeSimple } from "react-icons/fa6";
 import ScriptAgentWorkspace from "../component/aiagents/ScriptAgentWorkspace";
+import ShortlistManagerPopup from "../component/popups/Shortlistmanagerpopup";
+import WebhookAgentWorkspace from "../component/aiagents/WebhookAgentWorkspace";
 
 
 interface DeleteAllDialogDataInterface { }
@@ -110,8 +112,9 @@ export default function Customer() {
   const router = useRouter();
   const hasInitialFetched = useRef(false);
   const { getLabel, labels } = useCustomerFieldLabel();
-  const { getUserAgents, getAdminAgents } = useAIAgents();
+  const { fetchMyAgents } = useAIAgents();
   const [agents, setAgents] = useState<AIAgent[]>([]);
+  const [isAgentsLoading, setIsAgentsLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState<AIAgent | null>(null);
   const [isAIAgentsDialogOpen, setIsAIAgentDialogOpen] = useState(false);
   /* fetch */
@@ -188,6 +191,24 @@ export default function Customer() {
   const [isTodayDialogOpen, setIsTodayDialogOpen] = useState(false);
   const initialParamFetch = useRef(false);
   const [totalCustomerPage, setTotalCustomerPage] = useState(1);
+  const [isShortlistDialogOpen, setIsShortlistDialogOpen] = useState(false);
+  const [shortlistDialogData, setShortlistDialogData] = useState<any>(null);
+
+  const [shortlistOpen, setShortlistOpen] = useState(false);
+  const [assignAction, setAssignAction] = useState<"assign" | "remove">("assign");
+  const [isAssignLoading, setIsAssignLoading] = useState(false); // ✅ new state
+  const [isWhatsappSendLoading, setIsWhatsappSendLoading] = useState(false);
+  const [isMailSendLoading, setIsMailSendLoading] = useState(false);
+
+  // Add these loading states at the top of your component
+  const [isFetchingWhatsappTemplates, setIsFetchingWhatsappTemplates] = useState(false);
+  const [isFetchingMailTemplates, setIsFetchingMailTemplates] = useState(false);
+  const [isFetchingUsers, setIsFetchingUsers] = useState(false);
+
+
+  // Derives from your existing users array — assumes users have a `role` field
+  const hasUserRoleSelected = Array.isArray(selectedUser) &&
+    selectedUser.some((id) => users.find((u: any) => u._id === id)?.role === "user");
 
 
   const temperatureConfig: any = {
@@ -397,14 +418,12 @@ export default function Customer() {
   }, [columns]);
 
   const fetchAiAgents = async () => {
-    if (admin?.role === "administrator") {
-      const res = await getAdminAgents();
-      setAgents(res);
-      return;
-    }
-    const agents = await getUserAgents();
+    setIsAgentsLoading(true);
+    const agents = await fetchMyAgents();
     setAgents(agents);
+    setIsAgentsLoading(false)
   }
+
 
   // ── Derive which param and which options array are active ─────────────────────
   // Computed outside the effect so it can be used as a precise dependency.
@@ -421,128 +440,178 @@ export default function Customer() {
         : null;
 
   const relevantOptions = activeParam ? fieldOptions?.[activeParam] : null;
-// ── Pagination Effect (Restored) ──────────────────────────────────────────────
-useEffect(() => {
-  const total = Math.ceil(totalCustomers / Number(filters.Limit[0])) || 1;
-  setTotalCustomerPage(total);
-}, [filters, totalCustomers]);
+  // ── Pagination Effect (Restored) ──────────────────────────────────────────────
+  useEffect(() => {
+    const total = Math.ceil(totalCustomers / Number(filters.Limit[0])) || 1;
+    setTotalCustomerPage(total);
+  }, [filters, totalCustomers]);
 
   const getTotalCustomerPage = async () => {
-    const data = await getCustomer();
-    const total = Math.ceil(data.length / Number(filters.Limit[0])) || 1
+    const data = await getCustomerCount();
+    // console.log(" wow ", data.totalCount)
+    const total = Math.ceil(data.totalCount / Number(filters.Limit[0])) || 1
     setTotalCustomerPage(total);
-    setTotalCustomers(data.length);
+    setTotalCustomers(data.totalCount);
   }
 
-  // ── Effect 1: Mount-only ──────────────────────────────────────────────────────
-// ── Effect 1: Mount-only (VIP Priority for getCustomers) ───────────────────
-useEffect(() => {
-  audioRef.current = new Audio(
-    "https://res.cloudinary.com/dsyzuwice/video/upload/v1774423860/voicepop_ypkmtz.mp3"
-  );
 
-  const loadData = async () => {
-    // ---------------------------------------------------------
-    // PHASE 1: THE VIP TASK
-    // Fire this instantly so it claims the #1 network connection
-    // ---------------------------------------------------------
-    let customersPromise = null;
-    if (!activeParam) {
-      customersPromise = getCustomers(); 
-    }
+  // Object-based fields (for ObjectSelect)
+  const objectFields = [
+    { key: "Campaign", fetchFn: getCampaign },
+    { key: "CustomerType", staticData: [] },
+    { key: "CustomerSubtype", staticData: [] },
+    { key: "City", fetchFn: getCity },
+    { key: "Location", staticData: [] }, // dependent
+    { key: "SubLocation", staticData: [] }, // dependent
 
-    // ---------------------------------------------------------
-    // PHASE 2: SECONDARY UI TASKS
-    // Fire these immediately after. (Total of 3 requests, well 
-    // under the browser's 6-request limit, so zero queueing!)
-    // ---------------------------------------------------------
-    const uiTasks = [fetchFields()];
-    if (!activeParam) {
-     uiTasks.push(getTotalCustomerPage());
-    }
+  ];
 
-    // Wait for the critical table data and UI data to finish
-    if (customersPromise) await customersPromise;
-    await Promise.allSettled(uiTasks);
+  // Simple array fields (for normal Select)
+  const arrayFields = [
+    { key: "StatusAssign", staticData: ["Assigned", "Unassigned"] },
+    { key: "LeadTemperature", staticData: ["hot", "warm", "cold"] },
+    { key: "User", fetchFn: getAllAdmins },
+    { key: "ReferenceId", fetchFn: getReferences },
+    { key: "Price", fetchFn: getPrice },
+    { key: "LeadType", fetchFn: getLeadType },
+    { key: "MinPrice", staticData: ["1000", "10,000", "20,000", "40,000", "60,000", "100,000", "200,000", "1,000,000", "2,000,000", "10,000,000", "100,000,000"] },
+    { key: "MaxPrice", staticData: ["5000", "10,000", "20,000", "40,000", "60,000", "100,000", "200,000", "1,000,000", "2,000,000", "10,000,000", "100,000,000"] },
+  ];
 
-    // ---------------------------------------------------------
-    // PHASE 3: BACKGROUND TASKS
-    // These 3 tasks ONLY fire after getCustomers is 100% finished.
-    // ---------------------------------------------------------
-    fetchAiAgents();
-    fetchTodayCustomer();
-   // fetchcalllogs();
-  };
+  // 1. Create a guard reference outside the useEffect
+  const hasMounted = useRef(false);
 
-  loadData();
-}, []);
+  // ── Effect 1: Mount-only (Strict Network Priority Queuing) ──────────────────
+  useEffect(() => {
+    // 2. If it has already run, stop immediately
+    if (hasMounted.current) return;
+    hasMounted.current = true;
+
+    audioRef.current = new Audio(
+      "https://res.cloudinary.com/dsyzuwice/video/upload/v1774423860/voicepop_ypkmtz.mp3"
+    );
+
+    const loadData = async () => {
+      // ---------------------------------------------------------
+      // PHASE 1: ABSOLUTE PRIORITY (Main Table)
+      // ---------------------------------------------------------
+      let mainTablePromise = null;
+
+      if (!activeParam) {
+        mainTablePromise = getCustomers();
+      } else {
+        // The 50ms head-start so Effect 2 can queue the filtered API first
+        mainTablePromise = new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      // ---------------------------------------------------------
+      // PHASE 2: SECONDARY VIPs (Agents & Today's Leads)
+      // ---------------------------------------------------------
+      const agentsPromise = fetchAiAgents();
+      const todayPromise = fetchTodayCustomer();
+
+      // 🛑 WAIT HERE: Do not spam the browser with dropdown requests 
+      // until the main table has successfully loaded its data.
+      if (mainTablePromise) await mainTablePromise;
+
+      // ---------------------------------------------------------
+      // PHASE 3: BACKGROUND DATA (Dropdowns & Filters)
+      // Now that the table is rendering, silently load the filters.
+      // We bundle ALL background/dropdown tasks here so they don't block the UI.
+      // ---------------------------------------------------------
+      const backgroundTasks = [
+        fetchFields(),
+
+      ];
+
+      if (!activeParam) {
+        backgroundTasks.push(getTotalCustomerPage());
+      }
+
+      // Fire all background tasks concurrently (they won't block the UI)
+      Promise.allSettled(backgroundTasks);
+
+      // Finish waiting for Agents and Today's leads
+      await Promise.all([agentsPromise, todayPromise]);
+    };
+
+    loadData();
+  }, []);
 
 
   // ── Effect 2: Fires only when the ONE relevant options array changes ───────────
   // Because `relevantOptions` points to only Campaign OR ReferenceId OR
   // LeadTemperature — not all three — this effect runs exactly once when
   // the needed options load. Other arrays loading won't trigger it.
- useEffect(() => {
-  if (!activeParam) return;
+  // 1. Create the guards outside the useEffect
 
-  // ---------------------------------------------------------
-  // 1. INSTANT API CALL (Runs immediately, no waiting)
-  // ---------------------------------------------------------
-  if (!initialParamFetch.current) {
-    if (status) {
-      handleSelectChange("Campaign", status, { ...filters, Campaign: [status] });
-    } else if (reference) {
-      handleSelectChange("ReferenceId", reference, { ...filters, ReferenceId: [reference] });
-    } else if (leadtemperature) {
-      handleSelectChange("LeadTemperature", leadtemperature, { ...filters, LeadTemperature: [leadtemperature] });
+  const uiParamMapped = useRef(false);
+
+  // ── Effect 2: Fires only when the ONE relevant options array changes ───────────
+  useEffect(() => {
+    if (!activeParam) return;
+
+    // ---------------------------------------------------------
+    // 1. INSTANT API CALL (Guarded to strictly run ONCE)
+    // ---------------------------------------------------------
+    if (!initialParamFetch.current) {
+      initialParamFetch.current = true; // Lock it immediately
+
+      if (status) {
+        handleSelectChange("Campaign", status, { ...filters, Campaign: [status] });
+      } else if (reference) {
+        handleSelectChange("ReferenceId", reference, { ...filters, ReferenceId: [reference] });
+      } else if (leadtemperature) {
+        handleSelectChange("LeadTemperature", leadtemperature, { ...filters, LeadTemperature: [leadtemperature] });
+      }
     }
-    
-    // Mark as fetched so this block only runs once on page load
-    initialParamFetch.current = true;
-  }
 
-  // ---------------------------------------------------------
-  // 2. DELAYED UI UPDATE (Waits for fetchFields to populate Dropdowns)
-  // ---------------------------------------------------------
-  if (relevantOptions?.length) {
-    if (status) {
-      const campaignObj = fieldOptions?.Campaign?.find((c) => c.Name === status);
-      setFilters((prev) => ({ ...prev, StatusAssign: [status] }));
-      setDependent((prev) => ({
-        ...prev,
-        Campaign: { id: campaignObj?._id, name: campaignObj?.Name },
-      }));
+    // ---------------------------------------------------------
+    // 2. DELAYED UI UPDATE (Guarded to strictly map ONCE)
+    // ---------------------------------------------------------
+    // Wait for the data to exist, AND check our new guard
+    if (relevantOptions && relevantOptions.length > 0 && !uiParamMapped.current) {
+      uiParamMapped.current = true; // Lock it immediately
 
-    } else if (reference) {
-      const referenceObj = fieldOptions?.ReferenceId?.find((c) => c.Name === reference);
-      setFilters((prev) => ({ ...prev, ReferenceId: [reference] }));
-      setDependent((prev) => ({
-        ...prev,
-        ReferenceId: { id: referenceObj?._id, name: referenceObj?.Name },
-      }));
+      if (status) {
+        const campaignObj = fieldOptions?.Campaign?.find((c) => c.Name === status);
+        setFilters((prev) => ({ ...prev, StatusAssign: [status] }));
+        setDependent((prev) => ({
+          ...prev,
+          // Note: Added fallback to .id just in case your new optimized API drops the underscore
+          Campaign: { id: campaignObj?._id || campaignObj?.id, name: campaignObj?.Name },
+        }));
 
-    } else if (leadtemperature) {
-      const leadtemperatureObj = fieldOptions?.LeadTemperature?.find((c) => c.Name === leadtemperature);
-      setFilters((prev) => ({ ...prev, LeadTemperature: [leadtemperature] }));
-      setDependent((prev) => ({
-        ...prev,
-        LeadTemperature: { id: leadtemperatureObj?._id, name: leadtemperatureObj?.Name },
-      }));
+      } else if (reference) {
+        const referenceObj = fieldOptions?.ReferenceId?.find((c) => c.Name === reference);
+        setFilters((prev) => ({ ...prev, ReferenceId: [reference] }));
+        setDependent((prev) => ({
+          ...prev,
+          ReferenceId: { id: referenceObj?._id || referenceObj?.id, name: referenceObj?.Name },
+        }));
+
+      } else if (leadtemperature) {
+        const leadtemperatureObj = fieldOptions?.LeadTemperature?.find((c) => c.Name === leadtemperature);
+        setFilters((prev) => ({ ...prev, LeadTemperature: [leadtemperature] }));
+        setDependent((prev) => ({
+          ...prev,
+          LeadTemperature: { id: leadtemperatureObj?._id || leadtemperatureObj?.id, name: leadtemperatureObj?.Name },
+        }));
+      }
+
+      setCustomerTableLoader(false);
     }
-    
-    setCustomerTableLoader(false);
-  }
 
-}, [searchParams, relevantOptions]);// only the ONE array that matters
+  }, [searchParams, relevantOptions]); // Dependencies remain the same
 
-/*   const fetchcalllogs = async () => {
-    const res = await getCallReport();
-
-    const res2 = await getCallLogs();
-
-    console.log("call data", res);
-    console.log("call logs", res2);
-  } */
+  /*   const fetchcalllogs = async () => {
+      const res = await getCallReport();
+  
+      const res2 = await getCallLogs();
+  
+      console.log("call data", res);
+      console.log("call logs", res2);
+    } */
 
 
   useEffect(() => {
@@ -567,10 +636,10 @@ useEffect(() => {
   };
 
 
-/*   useEffect(() => {
-    const total = Math.ceil(totalCustomers / Number(filters.Limit[0])) || 1
-    setTotalCustomerPage(total);
-  }, [filters, totalCustomers]); */
+  /*   useEffect(() => {
+      const total = Math.ceil(totalCustomers / Number(filters.Limit[0])) || 1
+      setTotalCustomerPage(total);
+    }, [filters, totalCustomers]); */
 
 
   function getPlainTextFromHTML(htmlString: string) {
@@ -610,7 +679,7 @@ useEffect(() => {
   const handleFollowups = async (id: string, Name: string) => {
     const data = await getFollowupByCustomerId(id as string);
     if (data) {
-      console.log("Followups customer data", data)
+      // console.log("Followups customer data", data)
       setFollowupDialogData(data.map((item: any) => ({
         _id: item._id,
         customer: item.customer._id,
@@ -673,6 +742,7 @@ useEffect(() => {
       GoogleMap: item.GoogleMap || "",
       Price: item.Price || "",
       LeadType: item.LeadType || "",
+      Shortlisted: item?._count?.shortlistedProperties || 0,
       CustomerFields: item.CustomerFields || {},
       createdAt: formattedDate,
     };
@@ -813,7 +883,7 @@ useEffect(() => {
     const res = await callCustomer(data);
 
     if (res) {
-      console.log(" response is here ", res);
+      //  console.log(" response is here ", res);
       toast.success("call sent successfully");
       return;
     }
@@ -824,11 +894,11 @@ useEffect(() => {
 
   const handleChecked = async (data: CheckDialogDataInterface | null) => {
     if (!data) return;
-    console.log("data is ", data)
+    // console.log("data is ", data)
     const formData = new FormData();
     const current = customerData.find(c => c._id === data.id);
     const newChecked = !current?.isChecked;
-    console.log(" yes ", current?.isChecked)
+    // console.log(" yes ", current?.isChecked)
     formData.append("isChecked", newChecked.toString());
 
     const res = await updateCustomer(data.id, formData);
@@ -999,6 +1069,7 @@ useEffect(() => {
   };
 
   const clearFilter = async () => {
+    // 1. Reset your filter states
     setFilters({
       StatusAssign: [],
       Campaign: [],
@@ -1021,6 +1092,7 @@ useEffect(() => {
       StartDate: [],
       EndDate: [],
     });
+
     setDependent({
       Campaign: { id: "", name: "" },
       CustomerType: { id: "", name: "" },
@@ -1028,13 +1100,17 @@ useEffect(() => {
       City: { id: "", name: "" },
       Location: { id: "", name: "" },
       SubLocation: { id: "", name: "" },
-    })
-    setCurrentStep("")
-    setAiLoading(false)
-    setIsFilteredTrigger(false);
-    await getCustomers();
+    });
 
-   
+    setCurrentStep("");
+    setAiLoading(false);
+    setIsFilteredTrigger(false);
+
+    // 2. 🚀 Fire BOTH the data fetch and the count fetch at the same time
+    await Promise.all([
+      getCustomers(),
+      getTotalCustomerPage()
+    ]);
   };
 
   const refreshCustomersWithLastFilters = async () => {
@@ -1105,6 +1181,7 @@ useEffect(() => {
   });
 
   const fetchUsers = async () => {
+    setIsFetchingUsers(true);
     const response = await getAllAdmins();
 
     if (response) {
@@ -1116,14 +1193,19 @@ useEffect(() => {
         admins.map((item: any): usersGetDataInterface => ({
           _id: item?._id ?? "",
           name: item?.name ?? "",
+          role: item?.role ?? "user"
         }))
       );
 
+      setIsFetchingUsers(false);
+
       return;
     }
+    setIsFetchingUsers(false);
   };
 
   const fetchEmailTemplates = async () => {
+    setIsFetchingMailTemplates(true);
     const response = await getMail();
 
     if (response) {
@@ -1139,11 +1221,15 @@ useEffect(() => {
         }))
       );
 
+      setIsFetchingMailTemplates(false);
+
       return;
     }
+    setIsFetchingMailTemplates(false);
   };
 
   const fetchWhatsappTemplates = async () => {
+    setIsFetchingWhatsappTemplates(true);
     const response = await getWhatsapp();
 
     if (response) {
@@ -1151,17 +1237,36 @@ useEffect(() => {
 
       const whatsapptemplates = response?.filter((e: any) => e.status === "Active") ?? []; //ensure only active status are fetched
       //console.log(" mail data ", response)
-      setWhatsappTemplates(
+      const mapWhatsappTemplateToListItem = (tpl: any) => ({
+        _id: tpl._id,
+        name: tpl.name,
+        body: tpl.body,
+        image: tpl.whatsappImage?.[0] || undefined, // 👈 unwrap the array into a plain string
+        whatsappMediaType: tpl.whatsappMediaType,
+        whatsappFileName: tpl.whatsappFileName,
+        category: tpl.category || undefined,
+        whatsappLocation: tpl.whatsappLocation,
+        whatsappPoll: tpl.whatsappPoll,
+        variables: Array.isArray(tpl.variables) ? tpl.variables : [],
+        whatsappLinkPreview: tpl.whatsappLinkPreview,
+      });
+
+      setIsFetchingWhatsappTemplates(false);
+
+      // then wherever you fetch and set the list for this popup:
+      setWhatsappTemplates(response.map(mapWhatsappTemplateToListItem));
+/*       setWhatsappTemplates(
         whatsapptemplates.map((item: any): whatsappGetDataInterface => ({
           _id: item?._id ?? "",
           name: item?.name ?? "",
           body: item?.body ?? "",
           image: item?.whatsappImage[0] ?? "",
         }))
-      );
+      ); */
 
       return;
     }
+    setIsFetchingWhatsappTemplates(false);
   };
 
 
@@ -1187,55 +1292,21 @@ useEffect(() => {
   };
 
 
-  //Fetch dropdown data
+  // Fetch dropdown data safely and concurrently
   const fetchFields = async () => {
-    /*     await handleFieldOptions(
-          [
-            { key: "StatusAssign", staticData: ["Assigned", "Unassigned"] },
-            { key: "Campaign", fetchFn: getCampaign },
-            { key: "CustomerType", fetchFn: getTypes },
-            { key: "CustomerSubtype", fetchFn: getSubtype },
-            { key: "City", fetchFn: getCity },
-            { key: "Location", fetchFn: getLocation },
-            { key: "User", fetchFn: getAllAdmins },
-          ],
-          setFieldOptions
-        ); */
+    // console.log(" called here")
+    await Promise.all([
+      handleFieldOptionsObject(objectFields, setFieldOptions),
+      handleFieldOptions(arrayFields, setFieldOptions)
+    ]);
   };
 
-  // Object-based fields (for ObjectSelect)
-  const objectFields = [
-    { key: "Campaign", fetchFn: getCampaign },
-    { key: "CustomerType", staticData: [] },
-    { key: "CustomerSubtype", staticData: [] },
-    { key: "City", fetchFn: getCity },
-    { key: "Location", staticData: [] }, // dependent
-    { key: "SubLocation", staticData: [] }, // dependent
-
-  ];
-
-  // Simple array fields (for normal Select)
-  const arrayFields = [
-    { key: "StatusAssign", staticData: ["Assigned", "Unassigned"] },
-    { key: "LeadTemperature", staticData: ["hot", "warm", "cold"] },
-    { key: "User", fetchFn: getAllAdmins },
-    { key: "ReferenceId", fetchFn: getReferences },
-    { key: "Price", fetchFn: getPrice },
-    { key: "LeadType", fetchFn: getLeadType },
-    { key: "MinPrice", staticData: ["1000", "10,000", "20,000", "40,000", "60,000", "100,000", "200,000", "1,000,000", "2,000,000", "10,000,000", "100,000,000"] },
-    { key: "MaxPrice", staticData: ["5000", "10,000", "20,000", "40,000", "60,000", "100,000", "200,000", "1,000,000", "2,000,000", "10,000,000", "100,000,000"] },
-  ];
 
 
 
 
-  useEffect(() => {
-    const loadFieldOptions = async () => {
-      await handleFieldOptionsObject(objectFields, setFieldOptions);
-      await handleFieldOptions(arrayFields, setFieldOptions);
-    };
-    loadFieldOptions();
-  }, []);
+
+
 
 
   // Run this whenever parent filter changes
@@ -1374,22 +1445,32 @@ useEffect(() => {
 
     const payload: customerAssignInterface = {
       assignToId: selectedUser,
+      action: assignAction,
       ...(assignMode === "selected"
         ? { customerIds: selectedCustomers }
         : { campaign: selectedCampaign }),
     };
 
-    const response = await assignCustomer(payload);
+    setIsAssignLoading(true);                        // ✅ start loader
+    try {
+      const response = await assignCustomer(payload);
 
-    if (response.success) {
-      toast.success("Customers assigned successfully");
-      await getCustomers();
+      if (response.success) {
+        toast.success(
+          assignAction === "remove"
+            ? "Customers unassigned successfully"
+            : "Customers assigned successfully"
+        );
+        await getCustomers();
+        setIsAssignOpen(false);
+        return response;
+      }
+
+      toast.error(response.message);
       setIsAssignOpen(false);
-      return response;
+    } finally {
+      setIsAssignLoading(false);                     // ✅ always stop loader
     }
-    //console.log(" faraz is here wow brother ",response)
-    toast.error(response.message);
-    setIsAssignOpen(false);
   };
 
   const handleMailAll = async () => {
@@ -1397,6 +1478,8 @@ useEffect(() => {
       toast.error("Please select a template");
       return;
     }
+
+    setIsMailSendLoading(true);
 
     const payload: mailAllCustomerInterface = {
       customerIds: selectedCustomers,
@@ -1409,9 +1492,11 @@ useEffect(() => {
     if (response) {
       toast.success("Email customers succesfully")
       setIsMailAllOpen(false);
+      setIsMailSendLoading(false);
       return response
     }
     toast.error("failed to email customers")
+    setIsMailSendLoading(false);
     setIsMailAllOpen(false);
   };
 
@@ -1420,6 +1505,8 @@ useEffect(() => {
       toast.error("Please select a template");
       return;
     }
+
+    setIsWhatsappSendLoading(true);
 
     const payload: whatsappAllCustomerInterface = {
       customerIds: selectedCustomers,
@@ -1432,9 +1519,11 @@ useEffect(() => {
     if (response) {
       toast.success("Whatsapp customers succesfully")
       setIsWhatsappAllOpen(false);
+      setIsWhatsappSendLoading(false);
       return response
     }
     toast.error("failed to whatsapp customers")
+    setIsWhatsappSendLoading(false);
     setIsWhatsappAllOpen(false);
   };
 
@@ -1495,7 +1584,7 @@ useEffect(() => {
 
   const handleUpdateTemperature = async (id: string, value: string) => {
 
-    console.log(" id is ", id, "payload is ", value)
+    //  console.log(" id is ", id, "payload is ", value)
 
     const formData = new FormData();
     formData.append("LeadTemperature", value.toString());
@@ -1604,7 +1693,7 @@ useEffect(() => {
     const contactNumbers = currentRows.map(item => item.ContactNumber);
 
     const data = await getDuplicateContacts({ contactNumbers: contactNumbers });
-    console.log(" contact dup data ", data)
+    // console.log(" contact dup data ", data)
 
     // Expected response: { "9876543210": true, "9999999999": false }
 
@@ -1616,7 +1705,7 @@ useEffect(() => {
 
     if (!finalKeyword.trim()) return;
 
-    console.log(" searching for ", finalKeyword);
+    // console.log(" searching for ", finalKeyword);
 
     await wait(800);
 
@@ -1654,7 +1743,7 @@ useEffect(() => {
 
     const res = await startCallByAIAgent(payload);
 
-    console.log(" response is here ", res);
+    // console.log(" response is here ", res);
 
     if (res) {
       toast.success("call initiated successfully");
@@ -1722,7 +1811,7 @@ useEffect(() => {
       if (audioRef.current) {
         audioRef.current.currentTime = 0; // restart every time
         audioRef.current.play();
-        console.log("working yes ")
+        //  console.log("working yes ")
       }
     }, 100);
   };
@@ -1788,6 +1877,7 @@ useEffect(() => {
     Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Mining" className=" object-contain w-10 h-10" />,
     Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
     Script: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Assistant: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
     default: "AG",
   };
 
@@ -1796,6 +1886,10 @@ useEffect(() => {
     if (response) {
       setIsDealCloseOpen(false); setDealCloseData(null);
       toast.success("Deal closed successfully");
+
+      setCustomerData((prevData) =>
+        prevData.filter((customer) => customer?._id !== id)
+      );
       return;
     }
     toast.error("Failed to close deal");
@@ -1819,6 +1913,8 @@ useEffect(() => {
             setSelectedCustomers([]);
             setIsWhatsappAllOpen(false)
           }}
+          isLoading={isWhatsappSendLoading}
+          isFetchingData={isFetchingWhatsappTemplates}
         />
       )}
       {/* mail all popup */}
@@ -1834,6 +1930,8 @@ useEffect(() => {
             setSelectedCustomers([]);
             setIsMailAllOpen(false)
           }}
+          isLoading={isMailSendLoading}
+          isFetchingData={isFetchingMailTemplates}
         />
       )}
 
@@ -1876,7 +1974,7 @@ useEffect(() => {
           setSelectedCustomers(ids);
           setIsDeleteAllDialogOpen(true);
           setDeleteAllDialogData({});
-          console.log(" ids are ", ids)
+          //  console.log(" ids are ", ids)
         }}
       />
 
@@ -1974,6 +2072,13 @@ useEffect(() => {
           setIsFollowupDeleteDialogOpen(false);
         }}
         onDelete={deleteThisFollowup}
+      />
+
+      <ShortlistManagerPopup
+        isOpen={isShortlistDialogOpen}
+        onClose={() => { setIsShortlistDialogOpen(false); setShortlistDialogData(null); }}
+        customerId={shortlistDialogData?.id ?? ""}
+        customerName={shortlistDialogData?.name}
       />
 
       <FollowupAddDialog
@@ -2731,48 +2836,106 @@ useEffect(() => {
         {/* Assign User Popup */}
         {isAssignOpen && (
           <ListPopup
-            title="Assign Customers"
+            title={assignAction === "remove" ? "Remove Assigned" : "Assign Customers"}
             list={users}
             selected={selectedUser}
             onSelect={handleSelectUser}
             onSubmit={handleAssignto}
-            submitLabel="Assign"
+            submitLabel={assignAction === "remove" ? "Remove" : "Assign"}
             onClose={() => setIsAssignOpen(false)}
             multiSelect
             showPreview={false}
+            isLoading={isAssignLoading}
+            isFetchingData={isFetchingUsers}
           >
             <div className="px-6 flex flex-col gap-3">
 
-              {/* Mode Switch */}
-              <div className="flex gap-4 text-sm">
-                <label className="flex gap-2 items-center">
-                  <input
-                    type="radio"
-                    checked={assignMode === "selected"}
-                    onChange={() => setAssignMode("selected")}
-                  />
-                  Selected Customers
-                </label>
-
-                <label className="flex gap-2 items-center" onClick={() => fetchCampaigns()}>
-                  <input
-                    type="radio"
-                    checked={assignMode === "campaign"}
-                    onChange={() => setAssignMode("campaign")}
-                  />
-                  Entire Campaign
-                </label>
+              {/* Assign / Remove Toggle */}
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-lg text-sm font-medium w-fit">
+                <button
+                  onClick={() => setAssignAction("assign")}
+                  className={`px-4 py-1.5 rounded-md cursor-pointer transition-all ${assignAction === "assign"
+                    ? "bg-white text-[var(--color-primary)] shadow-sm"
+                    : "text-gray-400 hover:text-gray-600"
+                    }`}
+                >
+                  Assign
+                </button>
+                <button
+                  onClick={() => setAssignAction("remove")}
+                  className={`px-4 py-1.5 rounded-md cursor-pointer transition-all ${assignAction === "remove"
+                    ? "bg-white text-red-500 shadow-sm"
+                    : "text-gray-400 hover:text-gray-600"
+                    }`}
+                >
+                  Remove
+                </button>
               </div>
 
-              {/* Campaign Dropdown */}
-              {assignMode === "campaign" && (
+              {/* Mode Switch */}
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-4 text-sm">
 
+                  <label className="flex gap-2 items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={assignMode === "selected"}
+                      onChange={() => setAssignMode("selected")}
+                    />
+                    Selected Customers
+                  </label>
+
+                  {admin?.role !== "user" && (
+                    <label
+                      className={`flex gap-2 items-center transition-opacity ${hasUserRoleSelected
+                        ? "opacity-40 cursor-not-allowed"     // ✅ dimmed when blocked
+                        : "cursor-pointer"
+                        }`}
+                      onClick={() => {
+                        if (!hasUserRoleSelected) fetchCampaigns(); // ✅ no-op when blocked
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        disabled={hasUserRoleSelected}            // ✅ actually disabled
+                        checked={assignMode === "campaign"}
+                        onChange={() => {
+                          if (!hasUserRoleSelected) setAssignMode("campaign");
+                        }}
+                      />
+                      Entire Campaign
+                    </label>
+                  )}
+                </div>
+
+                {/* ✅ Inline amber hint — only visible when a "user" role assignee is selected */}
+                {hasUserRoleSelected && admin?.role !== "user" && (
+                  <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    <svg
+                      className="w-3.5 h-3.5 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                      />
+                    </svg>
+                    Campaign mode is unavailable — selected assignee(s) include a{" "}
+                    <span className="font-semibold">User</span> role
+                  </div>
+                )}
+              </div>
+
+              {/* Campaign Dropdown — double guarded */}
+              {assignMode === "campaign" && admin?.role !== "user" && !hasUserRoleSelected && (
                 <SingleSelect
-                  options={
-                    campaignList
-                      .filter((c) => c.Status === "Active")
-                      .map((c) => (c.Name))
-                  }
+                  options={campaignList
+                    .filter((c) => c.Status === "Active")
+                    .map((c) => c.Name)}
                   value={selectedCampaign}
                   label="Select Campaign"
                   onChange={(v: any) => setSelectedCampaign(v)}
@@ -2843,6 +3006,7 @@ useEffect(() => {
               agents={agents}
               setSelectedAgent={setSelectedAgent}
               setIsAIAgentDialogOpen={setIsAIAgentDialogOpen}
+              isLoading={isAgentsLoading}
             />
           </div>
 
@@ -3157,8 +3321,14 @@ useEffect(() => {
                       <ScriptAgentWorkspace isOpen={isAIAgentsDialogOpen} />
                     </div>
 
+                    /* ── ASSISTANT  ── */
+                  ) : selectedAgent && selectedAgent.type === "Assistant" ? (
+                    <div className="flex-1 overflow-hidden px-6 py-4">
+                      <WebhookAgentWorkspace isOpen={isAIAgentsDialogOpen} agent={selectedAgent} />
+                    </div>
+
                     /* ── Error STATE ── */
-                  ) :(
+                  ) : (
                     <div className="flex-1 flex flex-col items-center justify-center py-16 text-center px-6">
                       <div
                         className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
@@ -3637,7 +3807,7 @@ useEffect(() => {
                       fetchWhatsappTemplates()
                     }
                   }}><div className=" absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300 "></div>
-                    <span className="relative">SMS All</span></button>
+                    <span className="relative">Whatsapp All</span></button>
                   {/*                 <button type="button" className=" relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)]  rounded-tr-sm rounded-br-sm  border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer">
                   <div className=" absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300 "></div>
                   <span className="relative ">Mass Update</span>
@@ -3999,6 +4169,39 @@ useEffect(() => {
                                           <FaEye size={12} />
                                         </Button>
                                         <Button
+                                          sx={{
+                                            backgroundColor: "var(--color-primary-lighter)",
+                                            color: "var(--color-primary)",
+                                            minWidth: "32px",
+                                            height: "32px",
+                                            borderRadius: "8px",
+                                            transition: "all 0.2s ease",
+                                            "&:hover": {
+                                              backgroundColor: "var(--color-primary-light)",
+                                              transform: "scale(1.05)"
+                                            }
+                                          }}
+                                          onClick={() => {
+                                            setShortlistDialogData({
+                                              id: item._id,
+                                              name: item.Name,
+                                            });
+                                            setIsShortlistDialogOpen(true);
+                                          }}
+                                        >
+                                          {
+                                            item?.Shortlisted ? (
+                                              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                                              </svg>
+                                            ) : (
+                                              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                                              </svg>
+                                            )
+                                          }
+                                        </Button>
+                                        <Button
                                           onClick={() => {
                                             setDealCloseData({
                                               id: item._id,
@@ -4022,6 +4225,7 @@ useEffect(() => {
                                         >
                                           <FaHandshakeSimple size={20} />
                                         </Button>
+
                                       </div>
                                     );
                                     break;

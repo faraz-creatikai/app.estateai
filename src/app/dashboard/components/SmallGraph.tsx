@@ -11,7 +11,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useDashboardData } from "../data/useDashboardSectionOne";
-import { getAllCustomerFollowups } from "@/store/customerFollowups";
+// 🚨 Import your new optimized API call here!
+import { getFollowupChartStats } from "@/store/customer"; 
 
 type ChartMonth = {
   name: string;
@@ -22,80 +23,32 @@ const Dashboard = () => {
   const { followupByMonths, setFollowupByMonths } = useDashboardData();
   const [chartData, setChartData] = useState<ChartMonth[]>([]);
 
-  const fetchAllFollowups = async () => {
-    const apiData = await getAllCustomerFollowups();
-    if (!apiData) return [];
-
-    const now = new Date();
-
-    // Convert DD-MM-YYYY to Date
-    const parseDDMMYYYY = (dateStr: string) => {
-      const [day, month, year] = dateStr.split("-");
-      return new Date(Number(year), Number(month) - 1, Number(day));
-    };
-
-    // Create 4 months bucket (current + next 3)
-    const months = Array.from({ length: 4 }).map((_, index) => {
-      const d = new Date(now.getFullYear(), now.getMonth() + index, 1);
-      return {
-        month: d.getMonth(),
-        year: d.getFullYear(),
-        label: d.toLocaleString("default", { month: "short" }),
-        count: 0,
-      };
-    });
-
-    // Count followups
-    apiData.forEach((item: any) => {
-      if (!item.StartDate && !item.FollowupNextDate) return;
-
-      const startDate = item.StartDate ? new Date(item.StartDate) : null;
-      const followupDate = item.FollowupNextDate
-        ? parseDDMMYYYY(item.FollowupNextDate)
-        : null;
-
-      const checkDate = followupDate || startDate;
-      if (!checkDate) return;
-
-      months.forEach((m) => {
-        if (
-          checkDate.getMonth() === m.month &&
-          checkDate.getFullYear() === m.year
-        ) {
-          m.count += 1;
-        }
-      });
-    });
-
-    return months;
-  };
-
   useEffect(() => {
     const loadFollowups = async () => {
       try {
-        const months = await fetchAllFollowups();
-        if (!months || months.length === 0) return;
+        const response = await getFollowupChartStats();
+        
+        // Defensive check for Axios vs Standard Fetch unwrapping
+        const payload = response?.data?.data ? response.data.data : response?.data;
+        
+        if (!payload || !Array.isArray(payload) || payload.length === 0) return;
 
-        // Set chart data
-        const formattedChart = months.map((m) => ({
-          name: m.label,
-          followups: m.count,
-        }));
+        // 1. Set the chart data directly
+        setChartData(payload);
 
-        setChartData(formattedChart);
-
-        // Set summary (this month + next month only)
+        // 2. Set the summary (Index 0 is this month, Index 1 is next month)
         setFollowupByMonths({
-          thisMonth: months[0]?.count ?? 0,
-          nextMonth: months[1]?.count ?? 0,
+          thisMonth: payload[0]?.followups ?? 0,
+          nextMonth: payload[1]?.followups ?? 0,
         });
+
       } catch (error) {
         console.error("Error fetching followups:", error);
       }
     };
 
     loadFollowups();
-  }, []);
+  }, [setFollowupByMonths]);
 
   return (
     <div className="shadow-md h-full lg:w-[440px] overflow-hidden">

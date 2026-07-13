@@ -43,7 +43,7 @@ export interface FollowupByMonthsData {
 export function useDashboardData() {
   const [dashboardSectionOneCardData, setDashboardSectionOneCardData] = useState<DashboardCard[]>([
     {
-      name: "Total Customers",
+      name: "Total Unique Customers",
       value: 0,
       bg: "bg-gradient-to-r from-sky-500 to-sky-800",
       icon: <LuChartNoAxesColumnIncreasing />,

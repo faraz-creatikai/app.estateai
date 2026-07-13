@@ -68,7 +68,12 @@ const AIAgentSidebar: React.FC<Props> = ({
                                             { step: "1", label: "Enter prompt or customer details", icon: "📝" },
                                             { step: "2", label: "AI analyzes context & requirements", icon: "🧠" },
                                             { step: "3", label: "Generate and refine sales script", icon: "✨" },
-                                        ]
+                                        ]: selectedAgent?.type === "Assistant"
+                        ? [
+                            { step: "1", label: "talk to agent, tell requirement", icon: "👤" },
+                            { step: "2", label: "let agent do action", icon: "🔗" },
+                            { step: "3", label: "Explore its capabilities", icon: "📋" },
+                        ]
                                         : [
                                             { step: "1", label: "Select an agent type", icon: "🤖" },
                                             { step: "2", label: "Describe your task", icon: "✍️" },
@@ -142,7 +147,13 @@ const AIAgentSidebar: React.FC<Props> = ({
                                             "Multi-language script support",
                                             "Lead & follow-up based script creation",
                                             "Custom script editing & refinement",
-                                        ] : [
+                                        ]: selectedAgent?.type === "Assistant"
+                                    ? [
+                                        "Webhook integrated",
+                                        "user friendly",
+                                        "Audience engagement insights",
+
+                                    ] : [
                                             "Intelligent lead matching",
                                             "Natural language interface",
                                             "Real-time AI processing",

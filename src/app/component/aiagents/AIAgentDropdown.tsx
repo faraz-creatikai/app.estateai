@@ -22,13 +22,14 @@ interface Props {
     agents: AIAgent[];
     setSelectedAgent: (agent: AIAgent) => void;
     setIsAIAgentDialogOpen: (open: boolean) => void;
+    isLoading?: boolean;
 }
 
 const ICONS = [Bot, Sparkles, Zap, Bot, Sparkles];
 
 const TYPE_ICON: Record<string, any> = {
     Outreach: <Sparkles />,
-     Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
+    Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
     Recommendation: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     Research: <img src="/icons/research.png" alt="Research" />,
     Automation: <img src="/icons/automation.png" alt="Automation" />,
@@ -37,8 +38,9 @@ const TYPE_ICON: Record<string, any> = {
     Matching: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-2_l1xdll.png" alt="Matching" className="object-contain w-10 h-10" />,
     Qualification: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-1_nz99v7.png" alt="Qualification" className=" object-contain w-10 h-10" />,
     Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Mining" className=" object-contain w-10 h-10" />,
-        Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
-        Script:<img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Script: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Assistant: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
 };
 
 const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -52,7 +54,8 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
     Mining: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
     Analytics: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
     Social: { bg: "bg-rose-50", text: "text-rose-700" },
-    Script:{ bg: "bg-amber-50", text: "text-amber-700" },
+    Script: { bg: "bg-amber-50", text: "text-amber-700" },
+    Assistant: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
     _default: { bg: "bg-gray-50", text: "text-gray-600" },
 };
 
@@ -75,6 +78,7 @@ export default function AIAgentDropdown({
     agents,
     setSelectedAgent,
     setIsAIAgentDialogOpen,
+    isLoading = false,
 }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [active, setActive] = useState<AIAgent | null>(null);
@@ -126,8 +130,8 @@ export default function AIAgentDropdown({
             >
                 <span
                     className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${active
-                            ? active.status === "Active" ? "bg-emerald-500" : "bg-gray-300"
-                            : "bg-gray-300"
+                        ? active.status === "Active" ? "bg-emerald-500" : "bg-gray-300"
+                        : "bg-gray-300"
                         }`}
                 />
                 {active ? (
@@ -159,7 +163,20 @@ export default function AIAgentDropdown({
 
                     {/* Agent rows */}
                     <ul className="pb-1 max-h-[260px] overflow-y-auto">
-                        {agents.length === 0 ? (
+                        {isLoading ? (
+                            <li className="px-2 py-2 flex flex-col gap-1.5">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="flex items-center gap-3 px-1 py-1.5 animate-pulse">
+                                        <div className="w-7 h-7 rounded-lg bg-gray-100 flex-shrink-0" />
+                                        <div className="flex-1 flex flex-col gap-1.5">
+                                            <div className="h-2.5 bg-gray-100 rounded-full w-2/3" />
+                                            <div className="h-2 bg-gray-100 rounded-full w-1/2" />
+                                        </div>
+                                        <div className="w-10 h-4 rounded-full bg-gray-100 flex-shrink-0" />
+                                    </div>
+                                ))}
+                            </li>
+                        ) : agents.length === 0 ? (
                             <li className="px-3 py-4 text-center text-xs text-gray-400">No agents available</li>
                         ) : (
                             agents.map((agent, i) => {

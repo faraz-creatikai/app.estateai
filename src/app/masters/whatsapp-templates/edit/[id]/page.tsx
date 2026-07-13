@@ -9,6 +9,7 @@ import { getWhatsappById, updateWhatsapp } from "@/store/masters/whatsapp/whatsa
 import BackButton from "@/app/component/buttons/BackButton";
 import SaveButton from "@/app/component/buttons/SaveButton";
 import MasterProtectedRoute from "@/app/component/MasterProtectedRoutes";
+import WhatsappRichFields, { buildRichFormData, defaultRichData, richDataFromTemplate, WhatsappRichData } from "@/app/component/datafields/WhatsappRichFields";
 
 interface ErrorInterface {
   [key: string]: string;
@@ -17,6 +18,7 @@ interface ErrorInterface {
 export default function WhatsappEdit() {
   const { id } = useParams();
   const router = useRouter();
+  const [rich, setRich] = useState<WhatsappRichData>(defaultRichData);
 
   const [whatsappData, setWhatsappData] = useState<any>({
     name: "",
@@ -31,6 +33,7 @@ export default function WhatsappEdit() {
   // For new file
   const [whatsappImageFile, setWhatsappImageFile] = useState<File | null>(null);
   const [whatsappImagePreview, setWhatsappImagePreview] = useState<string | null>(null);
+  
 
   useEffect(() => {
     const fetchWhatsapp = async () => {
@@ -38,6 +41,7 @@ export default function WhatsappEdit() {
         const data = await getWhatsappById(id as string);
         if (data) {
           setWhatsappData(data);
+          setRich(richDataFromTemplate(data));
 
           // If image exists → show preview
           if (data.whatsappImage && data.whatsappImage.length > 0) {
@@ -105,6 +109,10 @@ export default function WhatsappEdit() {
       setErrors(validationErrors);
       return;
     }
+    if (rich.whatsappMediaType === "location" && (!rich.locationLat || !rich.locationLng)) {
+  toast.error("Pick a location on the map before saving");
+  return;
+}
 
     const formData = new FormData();
 
@@ -122,6 +130,8 @@ export default function WhatsappEdit() {
     if (!whatsappImageFile && !whatsappImagePreview) {
       formData.append("removeImage", "true");
     }
+
+    buildRichFormData(formData, rich);
 
     const result = await updateWhatsapp(id as string, formData);
 
@@ -197,12 +207,13 @@ export default function WhatsappEdit() {
                 />
 
                 {/* IMAGE UPLOAD */}
-                  <FileUpload
-                    label="WhatsApp Image"
-                    multiple={false}
-                    previews={whatsappImagePreview ? [whatsappImagePreview] : []}
-                    onChange={handleWhatsappImageChange}
-                    onRemove={handleRemoveWhatsappImage}
+                  <WhatsappRichFields
+                    rich={rich}
+                    setRich={setRich}
+                    mediaFile={whatsappImageFile}
+                    mediaPreview={whatsappImagePreview}
+                    onMediaChange={handleWhatsappImageChange}
+                    onRemoveMedia={handleRemoveWhatsappImage}
                   />
 
                 <div className="flex justify-end mt-4">

@@ -19,6 +19,120 @@ export const getCustomer = async () => {
   }
 }
 
+export const getDashboardStatsCount = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.DASHBOARD_STATS_COUNT, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+export const getLeadSourcesStats = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.LEADSOURCE_STATS, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+export const getLeadTemperatureStats = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.LEADTEMPERATURE_STATS, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+export const getVisiterChartStats = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.VISITER_CHART_STATS, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+export const getFollowupChartStats = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.FOLLOWUP_CHART_STATS, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+export const getCustomerLocationStats = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.LOCATION_STATS, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+export const getRadarChartStats = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.RADAR_CHART_STATS, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
+
+
+export const getCustomerCount = async () => {
+  try {
+    const response = await fetch(API_ROUTES.CUSTOMER.GET_CUSTOMER_COUNT, { credentials: "include" });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  catch (error) {
+    console.log("SERVER ERROR: ", error)
+    return null;
+  }
+}
+
 export const getAllCustomer = async () => {
   try {
     const response = await fetch(API_ROUTES.CUSTOMER.GET_ALL_TOTAL, { credentials: "include" });
@@ -474,4 +588,80 @@ export const reopenDeal = async (id: string) => {
     console.log("SERVER ERROR: ", error)
     return null;
   }
+}
+
+
+//short list api calls
+export const addToShortlist = async (data: any) => {
+    try {
+        let response = await fetch(API_ROUTES.CUSTOMER.ADDSHORTLIST,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+                credentials: "include"
+            }
+        );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        response = await response.json();
+        return data;
+    }
+    catch (error) {
+        console.log("SERVER ERROR: ", error)
+        return null;
+    }
+}
+
+export const getShortlist = async (id: string) => {
+    try {
+        const response = await fetch(API_ROUTES.CUSTOMER.GETSHORTLIST(id),{credentials: "include"});
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        return data;
+    }
+    catch (error) {
+        console.log("SERVER ERROR: ", error)
+        return null;
+    } 
+}
+
+export const removeShortlist = async (data: any) => {
+    try {
+        let response = await fetch(API_ROUTES.CUSTOMER.REMOVESHORTLIST,
+            {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+                credentials: "include"
+            }
+        );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        response = await response.json();
+        return data;
+    }
+    catch (error) {
+        console.log("SERVER ERROR: ", error)
+        return null;
+    }
+}
+
+
+export const updateShortlist = async (data: any) => {
+    try {
+        let response = await fetch(API_ROUTES.CUSTOMER.UPDATESHORTLIST,
+            {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+                credentials: "include"
+            }
+        );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        response = await response.json();
+        return data;
+    }
+    catch (error) {
+        console.log("SERVER ERROR: ", error)
+        return null;
+    }
 }

@@ -6,6 +6,11 @@ export interface aiagentAllDataInterface {
     campaign: string;
     targetSegment: string;
     capability: string;
+    promptRole?: string;
+    webhookUrl?: string;
+    webhookMethod?: string;
+    webhookHeaders?: Record<string, string> | null;
+    webhookPayload?: Record<string, any> | null;
 }
 
 export interface aiagentGetDataInterface {
