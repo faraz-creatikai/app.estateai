@@ -68,17 +68,28 @@ const AIAgentSidebar: React.FC<Props> = ({
                                             { step: "1", label: "Enter prompt or customer details", icon: "📝" },
                                             { step: "2", label: "AI analyzes context & requirements", icon: "🧠" },
                                             { step: "3", label: "Generate and refine sales script", icon: "✨" },
-                                        ]: selectedAgent?.type === "Assistant"
-                        ? [
-                            { step: "1", label: "talk to agent, tell requirement", icon: "👤" },
-                            { step: "2", label: "let agent do action", icon: "🔗" },
-                            { step: "3", label: "Explore its capabilities", icon: "📋" },
-                        ]
-                                        : [
-                                            { step: "1", label: "Select an agent type", icon: "🤖" },
-                                            { step: "2", label: "Describe your task", icon: "✍️" },
-                                            { step: "3", label: "Get AI-powered results", icon: "⚡" },
-                                        ];
+                                        ] : selectedAgent?.type === "Email"
+                                            ? [
+                                                { step: "1", label: "Select leads to Email", icon: "✍️" },
+                                                { step: "2", label: "AI Create Email Template and Sends", icon: "💬" },
+                                                { step: "3", label: "Review Your Email Campaigns from gmail account", icon: "📤" },
+                                            ] : selectedAgent?.type === "Video"
+                                                ? [
+                                                    { step: "1", label: "Select Images & Enter a Video Description", icon: "🖼️" },
+                                                    { step: "2", label: "Arrange Images in the Desired Order", icon: "📑" },
+                                                    { step: "3", label: "AI Generates the Video Script • Choose an AI Voice or Upload a Recorded Voice", icon: "🎙️" },
+                                                    { step: "4", label: "Wait While Your Video is Generated", icon: "🎬" },
+                                                ] : selectedAgent?.type === "Assistant"
+                                                    ? [
+                                                        { step: "1", label: "talk to agent, tell requirement", icon: "👤" },
+                                                        { step: "2", label: "let agent do action", icon: "🔗" },
+                                                        { step: "3", label: "Explore its capabilities", icon: "📋" },
+                                                    ]
+                                                    : [
+                                                        { step: "1", label: "Select an agent type", icon: "🤖" },
+                                                        { step: "2", label: "Describe your task", icon: "✍️" },
+                                                        { step: "3", label: "Get AI-powered results", icon: "⚡" },
+                                                    ];
 
     const capabilities =
         selectedAgent?.type === "Matching"
@@ -147,19 +158,27 @@ const AIAgentSidebar: React.FC<Props> = ({
                                             "Multi-language script support",
                                             "Lead & follow-up based script creation",
                                             "Custom script editing & refinement",
-                                        ]: selectedAgent?.type === "Assistant"
-                                    ? [
-                                        "Webhook integrated",
-                                        "user friendly",
-                                        "Audience engagement insights",
+                                        ] : selectedAgent?.type === "Email"
+                                            ? [
+                                                "Generate Personalised Email",
+                                                "Run Email Campaign",
+                                            ] : selectedAgent?.type === "Video"
+                                                ? [
+                                                    "Turn images into engaging AI videos",
+                                                    "Generate scripts, AI voiceovers, and cinematic videos in minutes",
+                                                ] : selectedAgent?.type === "Assistant"
+                                                    ? [
+                                                        "Webhook integrated",
+                                                        "user friendly",
+                                                        "Audience engagement insights",
 
-                                    ] : [
-                                            "Intelligent lead matching",
-                                            "Natural language interface",
-                                            "Real-time AI processing",
-                                            "CRM data integration",
-                                            "Actionable insights",
-                                        ];
+                                                    ] : [
+                                                        "Intelligent lead matching",
+                                                        "Natural language interface",
+                                                        "Real-time AI processing",
+                                                        "CRM data integration",
+                                                        "Actionable insights",
+                                                    ];
 
     const tip =
         selectedAgent?.type === "Matching"
@@ -174,9 +193,13 @@ const AIAgentSidebar: React.FC<Props> = ({
                             ? "Click Re-analyse after adding new leads to get fresh insights on the latest data."
                             : selectedAgent?.type === "Calling"
                                 ? "Review the AI briefing before the call to improve conversion chances."
-                                : selectedAgent?.type === "Social"
-                                    ? "For content suggestions, specify the platform and audience for more tailored insights."
-                                    : "Use natural language — the AI understands context, not just keywords.";
+                                : selectedAgent?.type === "Email"
+                                    ? "Make Sure Lead Data Contains Valid Email Adderess"
+                                    : selectedAgent?.type === "Video"
+                                        ? "Use high-quality images and provide a clear video description for the best results."
+                                        : selectedAgent?.type === "Social"
+                                            ? "For content suggestions, specify the platform and audience for more tailored insights."
+                                            : "Use natural language — the AI understands context, not just keywords.";
 
     return (
         <div

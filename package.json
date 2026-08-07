@@ -29,6 +29,8 @@
     "dotenv": "^17.4.2",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.24",
+    "grapesjs": "^0.23.2",
+    "grapesjs-preset-newsletter": "^1.0.2",
     "jodit-react": "^5.2.38",
     "js-cookie": "^3.0.5",
     "jspdf": "^4.2.1",

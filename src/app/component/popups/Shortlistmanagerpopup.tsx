@@ -236,6 +236,7 @@ const CheckboxIcon = ({ checked, indeterminate }: { checked: boolean; indetermin
   </div>
 );
 
+
 const Spinner = ({ className = '' }: { className?: string }) => (
   <div className={`rounded-full border-2 border-current border-t-transparent animate-spin ${className}`} />
 );

@@ -34,7 +34,7 @@ interface FieldError {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const AGENT_TYPES = ["Matching", "Followup", "Qualification", "Calling", "Recommendation", "Mining", "Analytics", "Social", "Assistant" /* "Success" */];
+const AGENT_TYPES = ["Matching", "Followup", "Qualification", "Calling", "Recommendation", "Mining", "Analytics", "Social", "Email","Video", "Assistant" /* "Success" */];
 
 const SUB_TYPES: Record<string, string[]> = {
     Sales: ["Lead Scoring", "Pipeline Analytics", "Meeting Scheduler", "Proposal Generator", "Deal Tracking"],
@@ -45,7 +45,9 @@ const SUB_TYPES: Record<string, string[]> = {
     Mining: ["Customer Segmentation", "Churn Analysis", "Sales Forecasting", "Behavioral Analytics", "Risk Assessment"],
     Analytics: ["Customer Segmentation", "Churn Analysis", "Sales Forecasting", "Behavioral Analytics", "Risk Assessment"],
     Social: ["Content Creation", "Post Scheduling", "Engagement Analysis", "Trend Monitoring", "Competitor Analysis"],
-    Script: ["Script Creation","Lead Analyse Before Generating","Tips for Intraction"],
+    Script: ["Script Creation", "Lead Analyse Before Generating", "Tips for Intraction"],
+    Email: ["Email Campaign Run", "Email Leads", "Generate Email Template"],
+    Video:["Video Generation", "Video Script Generation"],
     ASSISTANT: ["Webhook Integration", "Chat Assistant", "Data collection", "Action Perform"]
 };
 
@@ -70,7 +72,9 @@ const TYPE_ICON: Record<string, string | ReactElement> = {
     Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Mining" className=" object-contain w-10 h-10" />,
     Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
     Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
-    Script:<img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Script: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Email: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335523/img-7_xjwzbl.png" alt="Followup" className=" object-contain w-10 h-10" />,
+    Video: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     Assistant: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
 };
 
@@ -85,6 +89,8 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string; ri
     Analytics: { bg: "bg-rose-50 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-800", ring: "ring-rose-300 dark:ring-rose-700" },
     Social: { bg: "bg-green-50 dark:bg-green-950", text: "text-green-700 dark:text-green-300", border: "border-green-200 dark:border-green-800", ring: "ring-green-300 dark:ring-green-700" },
     Script: { bg: "bg-amber-50 dark:bg-amber-950", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800", ring: "ring-amber-300 dark:ring-amber-700" },
+    Email: { bg: "bg-amber-50 dark:bg-amber-950", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800", ring: "ring-amber-300 dark:ring-amber-700" },
+    Video:{ bg: "bg-sky-50 dark:bg-sky-950", text: "text-sky-700 dark:text-sky-300", border: "border-sky-200 dark:border-sky-800", ring: "ring-sky-300 dark:ring-sky-700" },
     Assistant: { bg: "bg-rose-50 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-800", ring: "ring-rose-300 dark:ring-rose-700" },
 };
 
@@ -134,19 +140,19 @@ const errorInputClass =
 export default function EditAgentPage() {
     const { id } = useParams();
     const [form, setForm] = useState<AgentFormData>({
-    name: "",
-    description: "",
-    type: "",
-    status: true,
-    campaign: "",
-    targetSegment: "",
-    capability: "",
-    promptRole: "",
-    webhookUrl: "",
-    webhookMethod: "POST",
-    webhookHeaders: "",
-    webhookPayload: "",
-});
+        name: "",
+        description: "",
+        type: "",
+        status: true,
+        campaign: "",
+        targetSegment: "",
+        capability: "",
+        promptRole: "",
+        webhookUrl: "",
+        webhookMethod: "POST",
+        webhookHeaders: "",
+        webhookPayload: "",
+    });
 
     const [errors, setErrors] = useState<FieldError>({});
     const [submitted, setSubmitted] = useState(false);
@@ -154,14 +160,14 @@ export default function EditAgentPage() {
     const [campaignOptions, setCampaignOptions] = useState<string[]>([]);
 
     function tryParseJson(text: string): { ok: true; value: any } | { ok: false } {
-    const trimmed = text.trim();
-    if (!trimmed) return { ok: true, value: undefined };
-    try {
-        return { ok: true, value: JSON.parse(trimmed) };
-    } catch {
-        return { ok: false };
+        const trimmed = text.trim();
+        if (!trimmed) return { ok: true, value: undefined };
+        try {
+            return { ok: true, value: JSON.parse(trimmed) };
+        } catch {
+            return { ok: false };
+        }
     }
-}
 
     /*    useEffect(() => {
            getCampaignOptions();
@@ -174,30 +180,30 @@ export default function EditAgentPage() {
         getCampaignOptions();
     }, [id]);
 
-  const fetchAgent = async () => {
-    const res = await getAIAgentById(id as string);
+    const fetchAgent = async () => {
+        const res = await getAIAgentById(id as string);
 
-    if (res) {
-        setForm({
-            name: res.name || "",
-            description: res.description || "",
-            type: res.type || "",
-            status: res.status === "Active",
-            campaign: res.campaign || "",
-            targetSegment: res.targetSegment || "",
-            capability: res.capability || "",
-            promptRole: res.promptRole || "",
-            webhookUrl: res.webhookUrl || "",
-            webhookMethod: res.webhookMethod || "POST",
-            webhookHeaders: res.webhookHeaders
-                ? JSON.stringify(res.webhookHeaders, null, 2)
-                : "",
-            webhookPayload: res.webhookPayload
-                ? JSON.stringify(res.webhookPayload, null, 2)
-                : "",
-        });
-    }
-};
+        if (res) {
+            setForm({
+                name: res.name || "",
+                description: res.description || "",
+                type: res.type || "",
+                status: res.status === "Active",
+                campaign: res.campaign || "",
+                targetSegment: res.targetSegment || "",
+                capability: res.capability || "",
+                promptRole: res.promptRole || "",
+                webhookUrl: res.webhookUrl || "",
+                webhookMethod: res.webhookMethod || "POST",
+                webhookHeaders: res.webhookHeaders
+                    ? JSON.stringify(res.webhookHeaders, null, 2)
+                    : "",
+                webhookPayload: res.webhookPayload
+                    ? JSON.stringify(res.webhookPayload, null, 2)
+                    : "",
+            });
+        }
+    };
 
     const set = <K extends keyof AgentFormData>(key: K, value: AgentFormData[K]) => {
         setForm((prev) => ({ ...prev, [key]: value }));
@@ -205,50 +211,50 @@ export default function EditAgentPage() {
     };
 
     const validate = (): boolean => {
-    const next: FieldError = {};
-    if (!form.name.trim()) next.name = "Agent name is required.";
-    if (!form.type) next.type = "Please select a type.";
+        const next: FieldError = {};
+        if (!form.name.trim()) next.name = "Agent name is required.";
+        if (!form.type) next.type = "Please select a type.";
 
-    if (form.webhookUrl.trim()) {
-        try {
-            new URL(form.webhookUrl.trim());
-        } catch {
-            next.webhookUrl = "Enter a valid URL.";
+        if (form.webhookUrl.trim()) {
+            try {
+                new URL(form.webhookUrl.trim());
+            } catch {
+                next.webhookUrl = "Enter a valid URL.";
+            }
         }
-    }
 
-    if (!tryParseJson(form.webhookHeaders).ok) {
-        next.webhookHeaders = "Headers must be valid JSON.";
-    }
-    if (!tryParseJson(form.webhookPayload).ok) {
-        next.webhookPayload = "Payload must be valid JSON.";
-    }
+        if (!tryParseJson(form.webhookHeaders).ok) {
+            next.webhookHeaders = "Headers must be valid JSON.";
+        }
+        if (!tryParseJson(form.webhookPayload).ok) {
+            next.webhookPayload = "Payload must be valid JSON.";
+        }
 
-    setErrors(next);
-    return Object.keys(next).length === 0;
-};
+        setErrors(next);
+        return Object.keys(next).length === 0;
+    };
     const handleSubmit = async () => {
         if (!validate()) return;
 
         setLoading(true);
 
         const headersParsed = tryParseJson(form.webhookHeaders);
-const payloadParsed = tryParseJson(form.webhookPayload);
+        const payloadParsed = tryParseJson(form.webhookPayload);
 
-const payload = {
-    name: form.name,
-    description: form.description,
-    type: form.type,
-    status: form.status ? "Active" : "Inactive",
-    campaign: form.campaign,
-    targetSegment: form.targetSegment,
-    capability: form.capability,
-    promptRole: form.promptRole || undefined,
-    webhookUrl: form.webhookUrl.trim() || undefined,
-    webhookMethod: form.webhookUrl.trim() ? form.webhookMethod : undefined,
-    webhookHeaders: headersParsed.ok ? headersParsed.value : undefined,
-    webhookPayload: payloadParsed.ok ? payloadParsed.value : undefined,
-};
+        const payload = {
+            name: form.name,
+            description: form.description,
+            type: form.type,
+            status: form.status ? "Active" : "Inactive",
+            campaign: form.campaign,
+            targetSegment: form.targetSegment,
+            capability: form.capability,
+            promptRole: form.promptRole || undefined,
+            webhookUrl: form.webhookUrl.trim() || undefined,
+            webhookMethod: form.webhookUrl.trim() ? form.webhookMethod : undefined,
+            webhookHeaders: headersParsed.ok ? headersParsed.value : undefined,
+            webhookPayload: payloadParsed.ok ? payloadParsed.value : undefined,
+        };
 
         // 👉 EDIT FUNCTION
         const res = await updateAIAgent(id as string, payload);
@@ -263,17 +269,17 @@ const payload = {
     const handleReset = () => {
         setForm({
             name: "",
-    description: "",
-    type: "",
-    status: true,
-    campaign: "",
-    targetSegment: "",
-    capability: "",
-    promptRole: "",
-    webhookUrl: "",
-    webhookMethod: "POST",
-    webhookHeaders: "",
-    webhookPayload: "",
+            description: "",
+            type: "",
+            status: true,
+            campaign: "",
+            targetSegment: "",
+            capability: "",
+            promptRole: "",
+            webhookUrl: "",
+            webhookMethod: "POST",
+            webhookHeaders: "",
+            webhookPayload: "",
         });
         setErrors({});
         setSubmitted(false);
@@ -548,82 +554,82 @@ const payload = {
                         </section>
 
                         {/* Section: Webhook */}
-<section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xs p-6 flex flex-col gap-5">
-    <div className="flex items-center gap-2 pb-1 border-b border-gray-100 dark:border-gray-800">
-        <div
-            className="w-6 h-6 rounded-md flex items-center justify-center"
-            style={{ background: "var(--color-primary)" }}
-        >
-            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757M10.81 15.312a4.5 4.5 0 0 1-1.242-7.244l4.5-4.5a4.5 4.5 0 0 1 6.364 6.364l-1.757 1.757" />
-            </svg>
-        </div>
-        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Webhook</h2>
-        <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">Optional</span>
-    </div>
+                        <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xs p-6 flex flex-col gap-5">
+                            <div className="flex items-center gap-2 pb-1 border-b border-gray-100 dark:border-gray-800">
+                                <div
+                                    className="w-6 h-6 rounded-md flex items-center justify-center"
+                                    style={{ background: "var(--color-primary)" }}
+                                >
+                                    <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757M10.81 15.312a4.5 4.5 0 0 1-1.242-7.244l4.5-4.5a4.5 4.5 0 0 1 6.364 6.364l-1.757 1.757" />
+                                    </svg>
+                                </div>
+                                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Webhook</h2>
+                                <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">Optional</span>
+                            </div>
 
-    <Field label="Prompt Role" hint="Optional">
-        <input
-            type="text"
-            placeholder="e.g. system, assistant…"
-            value={form.promptRole}
-            onChange={(e) => set("promptRole", e.target.value)}
-            className={inputClass}
-        />
-    </Field>
+                            <Field label="Prompt Role" hint="Optional">
+                                <input
+                                    type="text"
+                                    placeholder="e.g. system, assistant…"
+                                    value={form.promptRole}
+                                    onChange={(e) => set("promptRole", e.target.value)}
+                                    className={inputClass}
+                                />
+                            </Field>
 
-    <Field label="Webhook URL" error={errors.webhookUrl}>
-        <input
-            type="text"
-            placeholder="https://example.com/webhook"
-            value={form.webhookUrl}
-            onChange={(e) => set("webhookUrl", e.target.value)}
-            className={errors.webhookUrl ? errorInputClass : inputClass}
-        />
-    </Field>
+                            <Field label="Webhook URL" error={errors.webhookUrl}>
+                                <input
+                                    type="text"
+                                    placeholder="https://example.com/webhook"
+                                    value={form.webhookUrl}
+                                    onChange={(e) => set("webhookUrl", e.target.value)}
+                                    className={errors.webhookUrl ? errorInputClass : inputClass}
+                                />
+                            </Field>
 
-    {form.webhookUrl.trim() && (
-        <Field label="Webhook Method">
-            <div className="flex gap-2">
-                {["POST", "PUT", "PATCH","GET"].map((m) => (
-                    <button
-                        key={m}
-                        type="button"
-                        onClick={() => set("webhookMethod", m)}
-                        className={[
-                            "px-3.5 py-1.5 rounded-full border text-sm font-medium transition-all cursor-pointer",
-                            form.webhookMethod === m
-                                ? "border-[var(--color-primary)] text-white bg-[var(--color-primary)]"
-                                : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-900",
-                        ].join(" ")}
-                    >
-                        {m}
-                    </button>
-                ))}
-            </div>
-        </Field>
-    )}
+                            {form.webhookUrl.trim() && (
+                                <Field label="Webhook Method">
+                                    <div className="flex gap-2">
+                                        {["POST", "PUT", "PATCH", "GET"].map((m) => (
+                                            <button
+                                                key={m}
+                                                type="button"
+                                                onClick={() => set("webhookMethod", m)}
+                                                className={[
+                                                    "px-3.5 py-1.5 rounded-full border text-sm font-medium transition-all cursor-pointer",
+                                                    form.webhookMethod === m
+                                                        ? "border-[var(--color-primary)] text-white bg-[var(--color-primary)]"
+                                                        : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-900",
+                                                ].join(" ")}
+                                            >
+                                                {m}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </Field>
+                            )}
 
-    <Field label="Webhook Headers" hint="JSON, optional" error={errors.webhookHeaders}>
-        <textarea
-            placeholder='{ "Authorization": "Bearer …" }'
-            value={form.webhookHeaders}
-            onChange={(e) => set("webhookHeaders", e.target.value)}
-            rows={3}
-            className={`${errors.webhookHeaders ? errorInputClass : inputClass} font-mono resize-none`}
-        />
-    </Field>
+                            <Field label="Webhook Headers" hint="JSON, optional" error={errors.webhookHeaders}>
+                                <textarea
+                                    placeholder='{ "Authorization": "Bearer …" }'
+                                    value={form.webhookHeaders}
+                                    onChange={(e) => set("webhookHeaders", e.target.value)}
+                                    rows={3}
+                                    className={`${errors.webhookHeaders ? errorInputClass : inputClass} font-mono resize-none`}
+                                />
+                            </Field>
 
-    <Field label="Webhook Payload" hint="JSON, optional" error={errors.webhookPayload}>
-        <textarea
-            placeholder='{ "extra": "field" }'
-            value={form.webhookPayload}
-            onChange={(e) => set("webhookPayload", e.target.value)}
-            rows={3}
-            className={`${errors.webhookPayload ? errorInputClass : inputClass} font-mono resize-none`}
-        />
-    </Field>
-</section>
+                            <Field label="Webhook Payload" hint="JSON, optional" error={errors.webhookPayload}>
+                                <textarea
+                                    placeholder='{ "extra": "field" }'
+                                    value={form.webhookPayload}
+                                    onChange={(e) => set("webhookPayload", e.target.value)}
+                                    rows={3}
+                                    className={`${errors.webhookPayload ? errorInputClass : inputClass} font-mono resize-none`}
+                                />
+                            </Field>
+                        </section>
 
                         {/* Actions (mobile) */}
                         <div className="flex gap-3 lg:hidden">

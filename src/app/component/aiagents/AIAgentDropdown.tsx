@@ -40,6 +40,8 @@ const TYPE_ICON: Record<string, any> = {
     Mining: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Mining" className=" object-contain w-10 h-10" />,
     Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
     Script: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Email: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335523/img-7_xjwzbl.png" alt="Followup" className=" object-contain w-10 h-10" />,
+    Video : <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     Assistant: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
 };
 
@@ -55,6 +57,7 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
     Analytics: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
     Social: { bg: "bg-rose-50", text: "text-rose-700" },
     Script: { bg: "bg-amber-50", text: "text-amber-700" },
+    Email: { bg: "bg-amber-50", text: "text-amber-700" },
     Assistant: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
     _default: { bg: "bg-gray-50", text: "text-gray-600" },
 };

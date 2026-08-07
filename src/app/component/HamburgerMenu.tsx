@@ -9,6 +9,7 @@ import { MdClose } from "react-icons/md";
 import { TfiClose } from "react-icons/tfi";
 import { useAuth } from "@/context/AuthContext";
 import { RiFilePaper2Fill } from "react-icons/ri";
+import BrandLogo from "./labels/BrandLogo";
 
 export default function MobileHamburger() {
 
@@ -209,11 +210,10 @@ export default function MobileHamburger() {
             >
               <div className="flex flex-col max-h-screen overflow-y-auto p-5 gap-5">
                 <div className=" self-start mb-2">
-                  <div className=" relative">
-                    <h2 className="  font-bold text-2xl">i<span className=" text-[var(--color-primary)]">big</span>data</h2>
-                    <p className=" absolute top-0  right-12 text-[8px] rounded-xl text-[var(--color-primary)] font-normal border border-[var(--color-primary)] px-[5px] py-[1px]">Domain</p>
-                  </div>
-                  <p className=" text-gray-400 text-sm font-light mt-1">Domain Insights, Made Easy</p>
+                 <BrandLogo
+                       variant="text"
+                       className="h-12 w-40 object-contain"
+                     />
                 </div>
                 {data.map((item, index) => (
                   <Link

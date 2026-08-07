@@ -11,11 +11,16 @@ import { addMail } from "@/store/masters/mail/mail";
 import BackButton from "@/app/component/buttons/BackButton";
 import SaveButton from "@/app/component/buttons/SaveButton";
 import MasterProtectedRoute from "@/app/component/MasterProtectedRoutes";
-import JoditEditorClient from "@/app/component/editors/JoditEditorClient";
+import GrapesEditorClient from "@/app/component/editors/Grapeseditorclient ";
+import { API_ROUTES } from "@/constants/ApiRoute";
+
 
 interface ErrorInterface {
   [key: string]: string;
 }
+
+// Point this at your backend's image upload endpoint (returns { data: [url] })
+
 
 export default function MailAdd() {
   const [mailData, setMailData] = useState<mailAllDataInterface>(()=>({
@@ -129,14 +134,15 @@ export default function MailAdd() {
                 error={errors.subject}
               />
 
-                {/* Body Textarea */}
+                {/* Body Editor */}
                 <div className="flex flex-col">
                   <label className="text-gray-700 mb-2 font-medium">Body</label>
 
-                  <JoditEditorClient
-                    value={mailData.body} // this is string
+                  <GrapesEditorClient
+                    value={mailData.body}
+                    uploadUrl={API_ROUTES.MASTERS.MAIL.FILEUPLOAD}
                     onChange={(html: string) => {
-                      setMailData((prev) => ({ ...prev, body: html })); // perfectly fine
+                      setMailData((prev) => ({ ...prev, body: html }));
                       setErrors((prev) => ({ ...prev, body: "" }));
                     }}
                   />
@@ -177,38 +183,6 @@ const InputField: React.FC<{
       onChange={onChange}
       placeholder=" "
       className={`peer w-full border rounded-sm bg-transparent py-3 px-4 outline-none 
-        ${error ? "border-red-500 focus:border-red-500" : "border-gray-400 focus:border-blue-500"}`}
-    />
-    <p
-      className={`absolute left-2 bg-white px-1 text-gray-500 text-sm transition-all duration-300
-      ${
-        value || error
-          ? "-top-2 text-xs text-blue-500"
-          : "peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-500"
-      }`}
-    >
-      {label}
-    </p>
-    {error && <span className="text-red-500 text-sm mt-1 block">{error}</span>}
-  </label>
-);
-
-// 🟩 Reusable Textarea Field
-const TextAreaField: React.FC<{
-  label: string;
-  name: string;
-  value: string;
-  error?: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-}> = ({ label, name, value, onChange, error }) => (
-  <label className="relative block w-full">
-    <textarea
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder=" "
-      rows={5}
-      className={`peer w-full border rounded-sm bg-transparent py-3 px-4 outline-none resize-none 
         ${error ? "border-red-500 focus:border-red-500" : "border-gray-400 focus:border-blue-500"}`}
     />
     <p

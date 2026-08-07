@@ -151,3 +151,27 @@ export const emailAllContact = async (data: mailAllContactInterface) => {
     return null;
   }
 };
+
+export const emailCustomerViaAi = async (data: any) => {
+  try {
+
+    console.log("emailall customer data ", data)
+    const response = await fetch(API_ROUTES.MASTERS.MAIL.SEND_EMAIL_VIA_AI, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      credentials: "include"
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log(" result is zoro",result)
+    return result;
+  } catch (error) {
+    console.error("SERVER ERROR: ", error);
+    return null;
+  }
+};

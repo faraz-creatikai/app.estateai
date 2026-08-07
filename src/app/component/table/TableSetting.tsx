@@ -33,19 +33,19 @@ function Tablesetting({ columns, setColumns }: TableSettingProps) {
       prev.map((col) =>
         col.key === key
           ? {
-              ...col,
-              isPinned: !col.isPinned,
-              visible: col.isPinned ? false : true,
-            }
+            ...col,
+            isPinned: !col.isPinned,
+            visible: col.isPinned ? false : true,
+          }
           : col
       )
     );
   };
 
   return (
-    <div   ref={menuRef}>
+    <div ref={menuRef}>
       {/* Settings Button */}
-      <div className="absolute top-[68px] right-2 md:right-2 xl:right-5 z-40">
+      <div className="absolute top-[82px] right-2 md:right-2 xl:right-5 z-40">
         <button
           onClick={() => setTogglesetting((prev) => !prev)}
           className="bg-[var(--color-secondary)] w-12 h-12 text-white cursor-pointer flex justify-center items-center rounded-md"
@@ -56,7 +56,7 @@ function Tablesetting({ columns, setColumns }: TableSettingProps) {
 
       {/* Dropdown Menu */}
       <div
-      
+
         style={{
           borderWidth: "0.2px",
           borderColor: "gray",
@@ -65,10 +65,9 @@ function Tablesetting({ columns, setColumns }: TableSettingProps) {
         className={`absolute top-28 max-h-54 bg-white shadow-2xl shadow-gray-300
           text-gray-900 px-1 py-2 right-18 flex-col rounded-md z-[1000]
           transform transition-all duration-300 ease-out overflow-y-scroll custom-scrollbar
-          ${
-            togglesetting
-              ? "scale-100 opacity-100 visible"
-              : "scale-95 opacity-0 pointer-events-none invisible"
+          ${togglesetting
+            ? "scale-100 opacity-100 visible"
+            : "scale-95 opacity-0 pointer-events-none invisible"
           }`}
       >
         {columns.map((col) => (

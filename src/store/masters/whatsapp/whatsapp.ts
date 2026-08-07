@@ -161,3 +161,41 @@ export const whatsappAllContact = async (data: whatsappAllContactInterface) => {
 };
 
 
+export const whatsappProperties = async (data: any) => {
+  try {
+
+    console.log("whatsappall contact data ", data)
+    const response = await fetch(API_ROUTES.MASTERS.WHATSAPP.WHATSAPP_PROPERTIES, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      credentials: "include"
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("SERVER ERROR: ", error);
+    return null;
+  }
+};
+
+export const sendDirectMessageApi = async (formData: FormData) => {
+  try {
+    const response = await fetch(API_ROUTES.MASTERS.WHATSAPP.WHATSAPP_DIRECT_MESSAGE, { // Update with your actual route
+      method: "POST",
+      body: formData, // Do NOT set Content-Type header, browser handles multipart boundaries automatically
+      credentials: "include"
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error("SERVER ERROR: ", error);
+    return null;
+  }
+};
+

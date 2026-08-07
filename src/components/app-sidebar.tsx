@@ -37,6 +37,7 @@ import { TbSocial } from "react-icons/tb";
 import { RiFilePaper2Fill } from "react-icons/ri";
 import { GrConfigure } from "react-icons/gr";
 import { sidebarLogoPath } from "@/app/data/PlatformData";
+import BrandLogo from "@/app/component/labels/BrandLogo";
 
 // This is sample data.
 const data = {
@@ -295,6 +296,10 @@ const data = {
           title: "Customer Fields",
           url: "/settings/customer/customer-fields",
         },
+        {
+          title: "CRM Branding",
+          url: "/settings/brand",
+        },
       ]
     },
     {
@@ -394,18 +399,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   });
   return (
     <Sidebar collapsible="icon" className="" {...props}>
-      <SidebarHeader className={`flex items-center py-1 justify-center ${state === "collapsed" ? "bg-white dark:bg-[var(--color-secondary-darker)] py-4" : "bg-gray-100"}`}>
-        {/* <img src="/logo.webp" alt="App Logo" className="h-10 w-40 " /> */}
-        {state === "collapsed" ? (
-          <ShieldUser className="w-6 h-6" />
-        ) : (
-          <img
-            src={sidebarLogoPath || "/applogo.jpeg"}
-            alt="App Logo"
-            className="h-12 w-40"
-          />
-        )}
-      </SidebarHeader>
+     <SidebarHeader
+  className={`flex items-center py-1 justify-center ${
+    state === "collapsed"
+      ? "bg-white dark:bg-[var(--color-secondary-darker)] py-4"
+      : "bg-gray-100"
+  }`}
+>
+  {state === "collapsed" ? (
+    <BrandLogo
+      variant="icon"
+      className="h-8 w-8 object-contain"
+    />
+  ) : (
+    <BrandLogo
+      variant="text"
+      className="h-12 w-40 object-contain"
+    />
+  )}
+</SidebarHeader>
       <SidebarContent>
         <NavMain items={filteredNavItems} />
       </SidebarContent>

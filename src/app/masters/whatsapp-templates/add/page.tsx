@@ -109,6 +109,7 @@ export default function WhatsappAdd() {
 
   return (
     <MasterProtectedRoute>
+      
       <div className=" min-h-screen  flex justify-center">
         <Toaster position="top-right" />
         <div className="w-full">

@@ -4,7 +4,7 @@ export interface Admin {
   name: string;
   email: string;
   password?: string; // usually excluded in responses, but useful for create forms
-  role: "administrator" | "city_admin" | "user" | "client_admin";
+  role: "administrator" | "city_admin" | "user" | "client_admin" | "agent";
   city?: string;
   phone?: string;
   status?: "active" | "inactive";

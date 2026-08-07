@@ -6,16 +6,20 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import SingleSelect from "@/app/component/SingleSelect";
 import toast, { Toaster } from "react-hot-toast";
-import { getMailById, updateMail } from "@/store/masters/mail/mail"; // 🔧 You can adjust this import path
+import { getMailById, updateMail } from "@/store/masters/mail/mail";
 import { mailAllDataInterface } from "@/store/masters/mail/mail.interface";
 import BackButton from "@/app/component/buttons/BackButton";
 import SaveButton from "@/app/component/buttons/SaveButton";
 import MasterProtectedRoute from "@/app/component/MasterProtectedRoutes";
-import JoditEditorClient from "@/app/component/editors/JoditEditorClient";
+import GrapesEditorClient from "@/app/component/editors/Grapeseditorclient ";
+
 
 interface ErrorInterface {
   [key: string]: string;
 }
+
+// Point this at your backend's image upload endpoint (returns { data: [url] })
+const IMAGE_UPLOAD_URL = `${process.env.NEXT_PUBLIC_API_URL}/uploads/image`;
 
 export default function MailEdit() {
   const { id } = useParams();
@@ -160,11 +164,12 @@ export default function MailEdit() {
                   onChange={(v) => handleSelectChange("status", v)}
                 />
 
-                {/* Body using JoditEditorClient */}
+                {/* Body using GrapesEditorClient */}
                   <div className="flex flex-col col-span-2">
                     <label className="text-gray-700 mb-2 font-medium">Body</label>
-                    <JoditEditorClient
+                    <GrapesEditorClient
                       value={mailData.body}
+                      uploadUrl={IMAGE_UPLOAD_URL}
                       onChange={(html: string) => {
                         setMailData((prev) => ({ ...prev, body: html }));
                         setErrors((prev) => ({ ...prev, body: "" }));
@@ -208,38 +213,6 @@ const InputField: React.FC<{
       onChange={onChange}
       placeholder=" "
       className={`peer w-full border rounded-sm bg-transparent py-3 px-4 outline-none 
-        ${error ? "border-red-500 focus:border-red-500" : "border-gray-400 focus:border-blue-500"}`}
-    />
-    <p
-      className={`absolute left-2 bg-white px-1 text-gray-500 text-sm transition-all duration-300
-      ${
-        value || error
-          ? "-top-2 text-xs text-blue-500"
-          : "peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:-top-2 peer-focus:text-xs peer-focus:text-blue-500"
-      }`}
-    >
-      {label}
-    </p>
-    {error && <span className="text-red-500 text-sm mt-1 block">{error}</span>}
-  </label>
-);
-
-// 🟩 Textarea Field
-const TextAreaField: React.FC<{
-  label: string;
-  name: string;
-  value: string;
-  error?: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-}> = ({ label, name, value, onChange, error }) => (
-  <label className="relative block w-full col-span-2">
-    <textarea
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder=" "
-      rows={5}
-      className={`peer w-full border rounded-sm bg-transparent py-3 px-4 outline-none resize-none
         ${error ? "border-red-500 focus:border-red-500" : "border-gray-400 focus:border-blue-500"}`}
     />
     <p

@@ -40,6 +40,9 @@ export default function SelectImports() {
     const router = useRouter();
     const { excelHeaders, file } = useCustomerImport();
     const [customerFieldMasters, setCustomerFieldMasters] = useState<string[]>([]);
+    // tracks whether the custom-field master list has finished loading (even if it comes back empty),
+    // so the auto-mapping effect below knows it's safe to run instead of racing the fetch.
+    const [customerFieldsReady, setCustomerFieldsReady] = useState(false);
     const [categorizedHeaders, setCategorizedHeaders] = useState<CategorizedHeader[]>([]);
 
     const normalize = (value: unknown) =>
@@ -58,9 +61,15 @@ export default function SelectImports() {
 
     useEffect(() => {
         const loadCustomerFields = async () => {
-            const res = await getCustomerFields();
-            const activeFields = res.filter((e: any) => e.Status === "Active");
-            setCustomerFieldMasters(activeFields.map((f: any) => f.Name));
+            try {
+                const res = await getCustomerFields();
+                const activeFields = res.filter((e: any) => e.Status === "Active");
+                setCustomerFieldMasters(activeFields.map((f: any) => f.Name));
+            } catch (error) {
+                toast.error("Error fetching custom fields");
+            } finally {
+                setCustomerFieldsReady(true);
+            }
         };
         loadCustomerFields();
     }, []);
@@ -134,7 +143,10 @@ export default function SelectImports() {
 
 
     useEffect(() => {
-        if (!excelHeaders.length) return;
+        // wait for both the excel headers AND the custom-field master list before categorizing,
+        // otherwise custom fields would always fall back to unmapped because the masters
+        // hadn't loaded yet on the first run.
+        if (!excelHeaders.length || !customerFieldsReady) return;
 
         const validHeaders = excelHeaders.filter(
             (header) =>
@@ -158,6 +170,20 @@ export default function SelectImports() {
                 };
             }
 
+            // same idea as the system-field match above, just checked against the
+            // dynamic custom-field master list instead of the fixed systemFields array.
+            const customMatch = customerFieldMasters.find(
+                (field) => normalize(field) === normalize(headerStr)
+            );
+
+            if (customMatch) {
+                return {
+                    header: headerStr,
+                    type: "custom",
+                    mappedTo: customMatch,
+                };
+            }
+
             return {
                 header: headerStr,
                 type: "custom",
@@ -176,7 +202,7 @@ export default function SelectImports() {
         });
 
         setFieldMapping(initialMapping);
-    }, [excelHeaders]);
+    }, [excelHeaders, customerFieldsReady, customerFieldMasters]);
 
 
 

@@ -133,6 +133,8 @@ export default function CustomerTable<T extends Record<string, any>>({
                         />
                         <div className="max-h-[calc(80vh-240px)] absolute top-[380px] w-full bg-white dark:bg-[var(--color-childbgdark)] overflow-y-auto px-4 py-6 rounded-t-3xl">
                             <h2 className="text-2xl font-bold text-center mb-8 text-[var(--color-primary)]">Customer Information</h2>
+
+                            {/* Standard Fields */}
                             {allLabelLeads?.map((item, j) => (
                                 <div
                                     key={j}
@@ -155,6 +157,15 @@ export default function CustomerTable<T extends Record<string, any>>({
                                         >
                                             {viewLeadData?.[item.key] ?? ""}
                                         </span>
+                                    ) : item.label === "URL" ? (
+                                        <a
+                                            href={viewLeadData?.[item.key] ?? "#"}
+                                            target="_blank"
+                                            className="text-[var(--color-primary)] cursor-pointer underline text-sm text-right max-w-[60%]"
+
+                                        >
+                                            {viewLeadData?.[item.key] ?? ""}
+                                        </a>
                                     ) : item.label === "AssignTo" ? (
                                         <span className="font-semibold text-gray-700 dark:text-[var(--color-txtlight)] text-sm">
                                             {Array.isArray(viewLeadData?.[item.key]) && viewLeadData[item.key].length > 0
@@ -176,6 +187,33 @@ export default function CustomerTable<T extends Record<string, any>>({
                                     )}
                                 </div>
                             ))}
+
+                            {/* ── NEW: Additional Information (Dynamic CustomerFields) ── */}
+                            {viewLeadData?.CustomerFields && Object.keys(viewLeadData.CustomerFields).length > 0 && (
+                                <div className="mt-4 border-t border-gray-100 dark:border-white/10 pt-6">
+                                    <h3 className="text-xl font-bold text-left mb-6 px-2">
+                                        Additional Information
+                                    </h3>
+                                    {Object.entries(viewLeadData.CustomerFields).map(([key, value], i) => (
+                                        <div
+                                            key={`custom-field-${i}`}
+                                            className={`flex ${String(value)?.length > 30 ? "flex-col gap-2" : ""} my-1 justify-between p-3 bg-gray-50 dark:bg-[var(--color-secondary-darker)] rounded-lg`}
+                                        >
+                                            <span className="font-semibold text-gray-700 dark:text-[var(--color-txtlight)] text-sm capitalize">
+                                                {/* Formats camelCase keys to spaced strings, e.g., "customKey" -> "Custom Key" */}
+                                                {key.replace(/([A-Z])/g, ' $1').trim()}
+                                            </span>
+                                            <span className={`text-gray-900 dark:text-[var(--color-txtlight)] font-medium text-sm ${String(value)?.length > 30 ? "text-left max-w-full" : "text-right max-w-[60%]"}`}>
+                                                {typeof value === "object" && value !== null
+                                                    ? JSON.stringify(value)
+                                                    : String(value || "N/A")}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {/* ──────────────────────────────────────────────────────── */}
+
                         </div>
                     </div>
                 </PopupMenu>

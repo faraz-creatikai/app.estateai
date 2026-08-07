@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CiExport, CiSearch } from "react-icons/ci";
 import { IoIosArrowUp, IoIosArrowDown, IoMdClose } from "react-icons/io";
-import { MdEdit, MdDelete, MdAdd, MdFavorite, MdFavoriteBorder, MdEmail } from "react-icons/md";
+import { MdEdit, MdDelete, MdAdd, MdFavorite, MdFavoriteBorder, MdEmail, MdFilterList } from "react-icons/md";
 import Button from '@mui/material/Button';
 import SingleSelect from "@/app/component/SingleSelect";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,7 +10,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpRight, Bot, ChevronsLeft, ChevronsRight, PlusSquare, Sparkles, UserPlus, Zap } from "lucide-react";
 import ProtectedRoute from "../component/ProtectedRoutes";
 import toast, { Toaster } from "react-hot-toast";
-import { getCustomer, deleteCustomer, getFilteredCustomer, updateCustomer, assignCustomer, deleteAllCustomer, getDuplicateContacts, getTodayCustomer, startCallByAIAgent, getCallLogs, getCallReport, closeCustomerDeal, getCustomerCount } from "@/store/customer";
+import { getCustomer, deleteCustomer, getFilteredCustomer, updateCustomer, assignCustomer, deleteAllCustomer, getDuplicateContacts, getTodayCustomer, startCallByAIAgent, getCallLogs, getCallReport, closeCustomerDeal, getCustomerCount, getCustomFieldValues, archieveCustomer } from "@/store/customer";
 import { CheckDialogDataInterface, CustomerAdvInterface, customerAssignInterface, customerGetDataInterface, DeleteDialogDataInterface } from "@/store/customer.interface";
 import DeleteDialog from "../component/popups/DeleteDialog";
 import { getCampaign } from "@/store/masters/campaign/campaign";
@@ -89,6 +89,13 @@ import { FaHandshakeSimple } from "react-icons/fa6";
 import ScriptAgentWorkspace from "../component/aiagents/ScriptAgentWorkspace";
 import ShortlistManagerPopup from "../component/popups/Shortlistmanagerpopup";
 import WebhookAgentWorkspace from "../component/aiagents/WebhookAgentWorkspace";
+import SendPropertiesWhatsAppPopup from "../component/popups/SendPropertiesWhatsappPopup";
+import WhatsAppActionMenu from "../component/popups/WhatsappActionMenu";
+import SendDirectWhatsappDialog from "../component/popups/SendDirectWhatsappDialog";
+import CustomerViewDialog from "../component/popups/CustomerviewDialog";
+import { getCustomerFields } from "@/store/masters/customerfields/customerfields";
+import EmailCampaignAgentWorkspace from "../component/aiagents/EmailCampaignAgentWorkspace";
+import VideoProjectWorkspace from "../component/aiagents/VideoProjectWorkspace";
 
 
 interface DeleteAllDialogDataInterface { }
@@ -156,7 +163,9 @@ export default function Customer() {
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isMailAllOpen, setIsMailAllOpen] = useState(false);
   const [isWhatsappAllOpen, setIsWhatsappAllOpen] = useState(false);
+  const [isSendPropertiesOpen, setIsSendPropertiesOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isSendDirectMessageOpen, setIsSendDirectMessageOpen] = useState(false);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [isFavouriteDialogOpen, setIsFavouriteDialogOpen] = useState(false);
   const [dialogData, setDialogData] = useState<DeleteDialogDataInterface | null>(null);
@@ -171,13 +180,17 @@ export default function Customer() {
   const [isFollowupOpen, setIsFollowupOpen] = useState(false);
   const [isDealCloseOpen, setIsDealCloseOpen] = useState(false);
   const [dealCloseData, setDealCloseData] = useState<any>(null);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [archiveData, setArchiveData] = useState<any>(null);
   const [selectedCustomerFollowupId, setSelectedCustomerFollowupId] = useState<string | null>(null);
   const [followupDialogData, setFollowupDialogData] = useState<customerFollowupAllDataInterface[] | null>([]);
   const [isfollowupDialogOpen, setIsFollowupDialogOpen] = useState(false);
   const [isFollowupDeleteDialogOpen, setIsFollowupDeleteDialogOpen] = useState(false);
   const [followupdeleteDialogData, setFollowupDeleteDialogData] = useState<FollowupDeleteDialogDataInterface | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<any>(null);
+  const [customerToView, setCustomerToView] = useState<any>(null);
   const [assignMode, setAssignMode] = useState<"selected" | "campaign">("selected");
   const [selectedCampaign, setSelectedCampaign] = useState<string[] | undefined>([]);
   const [campaignList, setCampaignList] = useState<
@@ -199,6 +212,7 @@ export default function Customer() {
   const [isAssignLoading, setIsAssignLoading] = useState(false); // ✅ new state
   const [isWhatsappSendLoading, setIsWhatsappSendLoading] = useState(false);
   const [isMailSendLoading, setIsMailSendLoading] = useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
 
   // Add these loading states at the top of your component
   const [isFetchingWhatsappTemplates, setIsFetchingWhatsappTemplates] = useState(false);
@@ -270,6 +284,7 @@ export default function Customer() {
     Limit: ["100"] as string[],
     StartDate: [] as string[],
     EndDate: [] as string[],
+    CustomerFields: {} as Record<string, string>,
   });
 
   const [dependent, setDependent] = useState({
@@ -280,6 +295,40 @@ export default function Customer() {
     Location: { id: "", name: "" },
     SubLocation: { id: "", name: "" },
   });
+
+
+  // reuse customFieldMasters from your column-persistence fix — don't refetch here
+  const [toggleCustomFieldFilter, setToggleCustomFieldFilter] = useState(false);
+  const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const activeCustomFieldCount = useMemo(
+    () => Object.values(filters.CustomerFields || {}).filter((v) => v.trim() !== "").length,
+    [filters.CustomerFields]
+  );
+
+  const humanizeKey = (key: string) =>
+    key
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/[-_]+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const handleCustomFieldChange = (key: string, value: string) => {
+    const updatedCustomFields = { ...filters.CustomerFields, [key]: value };
+    const updatedFilters = { ...filters, CustomerFields: updatedCustomFields };
+    setFilters(updatedFilters);
+
+    clearTimeout(debounceRef.current[key]);
+    debounceRef.current[key] = setTimeout(() => {
+      handleSelectChange("CustomerFields", updatedCustomFields, updatedFilters);
+    }, 400);
+  };
+
+  const clearCustomFieldFilters = () => {
+    const updatedFilters = { ...filters, CustomerFields: {} };
+    setFilters(updatedFilters);
+    handleSelectChange("CustomerFields", {}, updatedFilters);
+  };
 
   //this is for setting button
   // for header
@@ -302,21 +351,47 @@ export default function Customer() {
   const [exportingCustomerData, setExportingCustomerData] = useState<customerGetDataInterface[]>([]);
   const [duplicateContacts, setDuplicateContacts] = useState<Record<string, boolean>>({});
 
+
+  const [customFieldMasters, setCustomFieldMasters] = useState<string[]>([]);
+  const [customFieldsReady, setCustomFieldsReady] = useState(false);
+
+  const [showCustomFields, setShowCustomFields] = useState(false);
+  const [panelOverflow, setPanelOverflow] = useState("hidden");
+
+  useEffect(() => {
+    if (!toggleSearchDropdown) setPanelOverflow("hidden");
+  }, [toggleSearchDropdown]);
+
+  useEffect(() => {
+    const loadCustomFieldMasters = async () => {
+      try {
+        const res = await getCustomerFields();
+        const active = res.filter((e: any) => e.Status === "Active");
+        setCustomFieldMasters(active.map((f: any) => f.Name));
+      } catch (error) {
+        console.error("Error loading custom field masters:", error);
+      } finally {
+        setCustomFieldsReady(true); // flips even on empty/error, so we don't hang forever
+      }
+    };
+    loadCustomFieldMasters();
+  }, []);
+
   const dynamicFieldKeys = useMemo(() => {
-    if (!customerData.length) return [];
+    // master list is the source of truth so columns don't appear/disappear with pagination or search
+    const keys = new Set<string>(customFieldMasters);
 
-    const keys = new Set<string>();
-
+    // safety net: also surface any custom key that exists on loaded rows but isn't
+    // (yet, or anymore) in the active master list
     customerData.forEach(customer => {
       if (customer.CustomerFields) {
-        Object.keys(customer.CustomerFields).forEach(key => {
-          keys.add(key);
-        });
+        Object.keys(customer.CustomerFields).forEach(key => keys.add(key));
       }
     });
 
     return Array.from(keys);
-  }, [customerData]);
+  }, [customerData, customFieldMasters]);
+
   const DEFAULT_COLUMNS: Column[] = useMemo(() => {
     const staticColumns = [
       { key: "sno", label: "S.No.", isPinned: true, visible: true },
@@ -395,16 +470,16 @@ export default function Customer() {
 
   // header effect
   useEffect(() => {
+    if (!customFieldsReady) return; // don't sync/persist columns until we know the full custom-field set
     setColumns(prevColumns =>
       DEFAULT_COLUMNS.map(defaultCol => {
         const existing = prevColumns.find(c => c.key === defaultCol.key);
-
         return existing
-          ? { ...existing, label: defaultCol.label } // keep user settings
-          : defaultCol; // new column added
+          ? { ...existing, label: defaultCol.label }
+          : defaultCol;
       })
     );
-  }, [DEFAULT_COLUMNS]);
+  }, [DEFAULT_COLUMNS, customFieldsReady]);
 
   const fetchCampaigns = async () => {
     const res = await getCampaign();
@@ -416,6 +491,7 @@ export default function Customer() {
   useEffect(() => {
     localStorage.setItem("table-columns", JSON.stringify(columns));
   }, [columns]);
+
 
   const fetchAiAgents = async () => {
     setIsAgentsLoading(true);
@@ -619,6 +695,21 @@ export default function Customer() {
     setExportingCustomerData(datatoExport);
   }, [selectedCustomers]);
 
+  const [customFieldOptions, setCustomFieldOptions] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    const loadCustomFieldValues = async () => {
+      const res = await getCustomFieldValues();
+      setCustomFieldOptions(res || {});
+    };
+    loadCustomFieldValues();
+  }, []);
+
+  // a field only makes sense as a dropdown if it has a reasonable, short set of values —
+  // long free-text custom fields fall back to the text input instead
+  const isDropdownFriendly = (values: string[]) =>
+    values.length > 0 && values.length <= 50 && values.every((v) => v.length <= 40);
+
 
 
   const fetchTodayCustomer = async () => {
@@ -674,6 +765,11 @@ export default function Customer() {
   const handleEditClick = (id: string | number) => {
     setCustomerToEdit(id);
     setIsEditOpen(true);
+  };
+
+  const handleViewClick = (id: string | number) => {
+    setCustomerToView(id);
+    setIsViewOpen(true);
   };
 
   const handleFollowups = async (id: string, Name: string) => {
@@ -975,7 +1071,7 @@ export default function Customer() {
 
   const handleSelectChange = async (
     field: keyof typeof filters,
-    selected: string | string[] | boolean,
+    selected: string | string[] | boolean | Record<string, string>,
     filtersOverride?: typeof filters
   ) => {
     setCustomerTableLoader(true);
@@ -986,13 +1082,15 @@ export default function Customer() {
         ? selected
         : typeof selected === "boolean"
           ? field === "isFavourite"
-            ? selected // keep boolean
+            ? selected
             : selected
               ? ["true"]
               : []
-          : selected
-            ? [selected]
-            : [],
+          : typeof selected === "object" && selected !== null
+            ? selected
+            : selected
+              ? [selected]
+              : [],
     };
 
     setFilters(updatedFilters);
@@ -1009,15 +1107,24 @@ export default function Customer() {
       Object.entries(updatedFilters).forEach(([key, value]) => {
         if (key === "Limit") return;
 
-        if (
-          (key === "StartDate" || key === "EndDate") &&
-          !hasBothDates
-        ) {
+        if ((key === "StartDate" || key === "EndDate") && !hasBothDates) {
           return;
         }
 
         if (key === "isFavourite" && value === true) {
           queryParams.append(key, "true");
+          return;
+        }
+
+        if (key === "CustomerFields") {
+          const active = Object.fromEntries(
+            Object.entries(value as Record<string, string>).filter(
+              ([, v]) => v && v.trim() !== ""
+            )
+          );
+          if (Object.keys(active).length > 0) {
+            queryParams.append("CustomerFields", JSON.stringify(active));
+          }
           return;
         }
 
@@ -1033,7 +1140,6 @@ export default function Customer() {
         queryParams.append("Skip", "0");
       }
 
-      // 👇 ensures loader renders before API call
       await new Promise(requestAnimationFrame);
 
       const data = await getFilteredCustomer(queryParams.toString());
@@ -1050,9 +1156,7 @@ export default function Customer() {
       totalQueryParams.delete("Limit");
       totalQueryParams.delete("Skip");
 
-      const totalfilteredData = await getFilteredCustomer(
-        totalQueryParams.toString()
-      );
+      const totalfilteredData = await getFilteredCustomer(totalQueryParams.toString());
 
       if (totalfilteredData) {
         setTotalCustomers(totalfilteredData.length);
@@ -1063,13 +1167,11 @@ export default function Customer() {
 
       return data;
     } finally {
-      // 👇 ALWAYS runs even if API fails
       setCustomerTableLoader(false);
     }
   };
 
   const clearFilter = async () => {
-    // 1. Reset your filter states
     setFilters({
       StatusAssign: [],
       Campaign: [],
@@ -1091,6 +1193,7 @@ export default function Customer() {
       Limit: ["100"],
       StartDate: [],
       EndDate: [],
+      CustomerFields: {},
     });
 
     setDependent({
@@ -1106,11 +1209,7 @@ export default function Customer() {
     setAiLoading(false);
     setIsFilteredTrigger(false);
 
-    // 2. 🚀 Fire BOTH the data fetch and the count fetch at the same time
-    await Promise.all([
-      getCustomers(),
-      getTotalCustomerPage()
-    ]);
+    await Promise.all([getCustomers(), getTotalCustomerPage()]);
   };
 
   const refreshCustomersWithLastFilters = async () => {
@@ -1187,7 +1286,7 @@ export default function Customer() {
     if (response) {
       // console.log("response ", response);
 
-      const admins = response?.admins?.filter((e) => e.role === "user" || e.role === "city_admin") ?? []; //ensure only user and city_admin roles are fetched
+      const admins = response?.admins?.filter((e) => e.role === "user" || e.role === "city_admin" || e.role === "agent") ?? []; //ensure only user and city_admin roles are fetched
 
       setUsers(
         admins.map((item: any): usersGetDataInterface => ({
@@ -1255,14 +1354,14 @@ export default function Customer() {
 
       // then wherever you fetch and set the list for this popup:
       setWhatsappTemplates(response.map(mapWhatsappTemplateToListItem));
-/*       setWhatsappTemplates(
-        whatsapptemplates.map((item: any): whatsappGetDataInterface => ({
-          _id: item?._id ?? "",
-          name: item?.name ?? "",
-          body: item?.body ?? "",
-          image: item?.whatsappImage[0] ?? "",
-        }))
-      ); */
+      /*       setWhatsappTemplates(
+              whatsapptemplates.map((item: any): whatsappGetDataInterface => ({
+                _id: item?._id ?? "",
+                name: item?.name ?? "",
+                body: item?.body ?? "",
+                image: item?.whatsappImage[0] ?? "",
+              }))
+            ); */
 
       return;
     }
@@ -1564,6 +1663,9 @@ export default function Customer() {
     },
     {
       key: "Adderess", label: "Address"
+    },
+    {
+      key: "URL", label: "URL"
     },
     {
       key: "ContactNumber", label: "Contact No"
@@ -1878,6 +1980,8 @@ export default function Customer() {
     Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
     Script: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
     Assistant: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
+    Email: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335523/img-7_xjwzbl.png" alt="Followup" className=" object-contain w-10 h-10" />,
+    Video: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     default: "AG",
   };
 
@@ -1895,9 +1999,38 @@ export default function Customer() {
     toast.error("Failed to close deal");
   };
 
+  const archiveCustomerHandler = async (id: string) => {
+    const response = await archieveCustomer(id);
+    if (response?.success) {
+      setIsArchiveOpen(false);
+      setArchiveData(null);
+      toast.success("Customer archived");
+
+      setCustomerData((prevData) =>
+        prevData.filter((customer) => customer?._id !== id)
+      );
+      return;
+    }
+    toast.error("Failed to archive customer");
+  };
+
 
   return (
     <ProtectedRoute>
+      <WhatsAppActionMenu
+        isOpen={isActionMenuOpen}
+        onClose={() => setIsActionMenuOpen(false)}
+        onSelectTemplate={() => {
+          setIsWhatsappAllOpen(true);
+          fetchWhatsappTemplates();
+        }}
+        onSelectProperties={() => {
+          setIsSendPropertiesOpen(true);
+        }}
+        onSelectDirect={() => {
+          setIsSendDirectMessageOpen(true);
+        }}
+      />
 
       {/* whatsapp all popup */}
       <Toaster position="top-right" />
@@ -1917,6 +2050,16 @@ export default function Customer() {
           isFetchingData={isFetchingWhatsappTemplates}
         />
       )}
+      <SendDirectWhatsappDialog
+        isOpen={isSendDirectMessageOpen}
+        onClose={() => setIsSendDirectMessageOpen(false)}
+        customerIds={selectedCustomers}
+      />
+      <SendPropertiesWhatsAppPopup
+        isOpen={isSendPropertiesOpen}
+        onClose={() => setIsSendPropertiesOpen(false)}
+        customerIds={selectedCustomers}
+      />
       {/* mail all popup */}
       {isMailAllOpen && selectedCustomers.length > 0 && (
         <ListPopup
@@ -2038,6 +2181,15 @@ export default function Customer() {
           setCustomerToEdit(null);
         }}
         onCustomerUpdated={handleCustomerUpdated}
+      />
+
+      <CustomerViewDialog
+        isOpen={isViewOpen}
+        customerId={customerToView}
+        onClose={() => {
+          setIsViewOpen(false);
+          setCustomerToView(null);
+        }}
       />
 
       {/* Delete Dialog */}
@@ -2280,6 +2432,46 @@ export default function Customer() {
       }
 
       {
+        isArchiveOpen && (
+          <PopupMenu onClose={() => { setIsArchiveOpen(false); setArchiveData(null); }}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-full max-w-md mx-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-lighter)] flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">Archive Customer</h3>
+                    <p className="text-xs text-gray-500">This will remove it from your list only</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-700 mb-5">
+                  Are you sure you want to archive{" "}
+                  <span className="font-semibold text-gray-900">{archiveData?.name}</span>?
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => { setArchiveData(null); setIsArchiveOpen(false); }}
+                    className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => archiveCustomerHandler(archiveData?.id)}
+                    className="px-4 py-2 cursor-pointer text-sm font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    Yes, Archive
+                  </button>
+                </div>
+              </div>
+            </div>
+          </PopupMenu>
+        )
+      }
+
+      {
         isTemperatureDialogOpen && temperatureDialogData && (
           <PopupMenu
             onClose={() => {
@@ -2408,9 +2600,20 @@ export default function Customer() {
       {/* Mobile Customer Page */}
       <div className=" sm:hidden min-h-[calc(100vh-56px)] overflow-auto max-sm:py-2">
 
-        <div className=" flex justify-between items-center px-0">
-          <h1 className=" text-[var(--color-primary)] font-extrabold text-2xl ">Leads</h1>
+        <div className="flex justify-between items-center px-0">
+          <h1 className="text-[var(--color-primary)] font-extrabold text-2xl">Leads</h1>
 
+          <button
+            onClick={() => router.push("/customer/archieved")}
+            aria-label="View archived customers"
+            className="relative w-9 h-9 flex items-center justify-center rounded-full border border-[var(--color-primary)]/25 bg-[var(--color-primary)]/8 dark:bg-[var(--color-primary)]/12 text-[var(--color-primary)] active:scale-[0.92] transition-all duration-150"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" />
+            </svg>
+
+
+          </button>
         </div>
         <div className=" w-full">
           <DynamicAdvance>
@@ -2744,9 +2947,16 @@ export default function Customer() {
           onAdd={(id) => addFollowupFromDialogue(id)}
           onEdit={(id) => /* router.push(`/customer/edit/${id}`) */ handleEditClick(id)}
           onWhatsappClick={(lead) => {
+            /*   setSelectedCustomers([lead._id]);
+              setIsWhatsappAllOpen(true);
+              fetchWhatsappTemplates(); */
+
+            // 1. Prepare the customer data
             setSelectedCustomers([lead._id]);
-            setIsWhatsappAllOpen(true);
-            fetchWhatsappTemplates();
+            setSelectUser([lead._id]);
+
+            // 2. Open the choice menu instead of the template menu directly
+            setIsActionMenuOpen(true);
           }}
           onMailClick={(lead) => {
             setSelectedCustomers([lead._id]);
@@ -2774,43 +2984,73 @@ export default function Customer() {
             handleTableDialogData(contactNumber);
           }}
           renderActions={(item) => (
-            <div className=" flex justify-between w-full">
+            <>
+              <div className=" flex justify-between w-full">
 
-              <Button
-                className=" bg-gray-500"
-                sx={{ backgroundColor: item.isChecked ? "#E8F5E9" : "#FFF0F5", color: item.isChecked ? "var(--color-primary)" : "#E91E63", minWidth: "32px", minHeight: "35px", borderRadius: "100%" }}
-                onClick={() =>
-                  handleChecked({ id: item._id, isChecked: item.isChecked })
-                }
-              >
-                {item.isChecked ? <IoCheckmarkDoneOutline size={20} /> : <IoCheckmark size={20} />}
-              </Button>
-
-              <Button
-                sx={{
-                  backgroundColor: temperatureConfig[item.LeadTemperature || "cold"]?.bg,
-                  color: temperatureConfig[item.LeadTemperature || "cold"]?.color,
-                  minWidth: "32px",
-                  height: "35px",
-                  borderRadius: "100%",
-                  transition: "all 0.2s ease",
-                  "&:hover": {
-                    filter: "brightness(0.95)",
-                    transform: "scale(1.05)"
+                <Button
+                  className=" bg-gray-500"
+                  sx={{ backgroundColor: item.isChecked ? "#E8F5E9" : "#FFF0F5", color: item.isChecked ? "var(--color-primary)" : "#E91E63", minWidth: "32px", minHeight: "35px", borderRadius: "100%" }}
+                  onClick={() =>
+                    handleChecked({ id: item._id, isChecked: item.isChecked })
                   }
-                }}
-                onClick={() => {
-                  setTemperatureDialogData({
-                    id: item._id,
-                    name: item.CustomerName,
-                    current: item.LeadTemperature || "cold"
-                  });
-                  setIsTemperatureDialogOpen(true);
-                }}
-              >
-                {temperatureConfig[item.LeadTemperature || "cold"]?.icon}
-              </Button>
-            </div>
+                >
+                  {item.isChecked ? <IoCheckmarkDoneOutline size={20} /> : <IoCheckmark size={20} />}
+                </Button>
+
+                <Button
+                  sx={{
+                    backgroundColor: temperatureConfig[item.LeadTemperature || "cold"]?.bg,
+                    color: temperatureConfig[item.LeadTemperature || "cold"]?.color,
+                    minWidth: "32px",
+                    height: "35px",
+                    borderRadius: "100%",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      filter: "brightness(0.95)",
+                      transform: "scale(1.05)"
+                    }
+                  }}
+                  onClick={() => {
+                    setTemperatureDialogData({
+                      id: item._id,
+                      name: item.CustomerName,
+                      current: item.LeadTemperature || "cold"
+                    });
+                    setIsTemperatureDialogOpen(true);
+                  }}
+                >
+                  {temperatureConfig[item.LeadTemperature || "cold"]?.icon}
+                </Button>
+              </div>
+              <div className=" flex justify-between w-full mt-2">
+                <div />
+                <Button
+                  onClick={() => {
+                    setArchiveData({
+                      id: item._id,
+                      name: item.Name,
+                    });
+                    setIsArchiveOpen(true);
+                  }}
+                  sx={{
+                    backgroundColor: "#E8F5E9",
+                    color: "var(--color-primary)",
+                    minWidth: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      filter: "brightness(0.95)",
+                      transform: "scale(1.05)"
+                    }
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" />
+                  </svg>
+                </Button>
+              </div>
+            </>
           )}
         />
 
@@ -2989,6 +3229,15 @@ export default function Customer() {
                     {todaycustomerData.length}
                   </span>
                 )}
+              </button>
+               <button
+                onClick={() => router.push("/customer/archieved")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--color-primary)]/25 bg-[var(--color-primary)]/8 dark:bg-[var(--color-primary)]/12 text-[var(--color-primary)] text-[13px] font-semibold transition-all duration-150 hover:bg-[var(--color-primary)]/15 hover:border-[var(--color-primary)]/40 active:scale-[0.97] cursor-pointer"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                Archived
               </button>
               <button
                 onClick={() => router.push("/customer/closed-deals")}
@@ -3321,6 +3570,18 @@ export default function Customer() {
                       <ScriptAgentWorkspace isOpen={isAIAgentsDialogOpen} />
                     </div>
 
+                    /* ── EMAIL  ── */
+                  ) : selectedAgent && selectedAgent.type === "Email" ? (
+                    <div className="flex-1 overflow-hidden px-6 py-4">
+                      <EmailCampaignAgentWorkspace isOpen={isAIAgentsDialogOpen} />
+                    </div>
+
+                    /* ── VIDEO  ── */
+                  ) : selectedAgent && selectedAgent.type === "Video" ? (
+                    <div className="flex-1 overflow-hidden px-6 py-4">
+                      <VideoProjectWorkspace isOpen={isAIAgentsDialogOpen} />
+                    </div>
+
                     /* ── ASSISTANT  ── */
                   ) : selectedAgent && selectedAgent.type === "Assistant" ? (
                     <div className="flex-1 overflow-hidden px-6 py-4">
@@ -3353,16 +3614,86 @@ export default function Customer() {
 
               <div className="flex justify-between cursor-pointer items-center py-1 px-2 border border-gray-800 rounded-md" onClick={() => setToggleSearchDropdown(!toggleSearchDropdown)}>
                 <h3 className="flex items-center gap-1"><CiSearch />Advance Search</h3>
-                <button
-                  type="button"
-
-                  className="p-2 hover:bg-gray-200 rounded-md cursor-pointer"
-                >
+                <button type="button" className="p-2 hover:bg-gray-200 rounded-md cursor-pointer">
                   {toggleSearchDropdown ? <IoIosArrowUp /> : <IoIosArrowDown />}
                 </button>
               </div>
 
-              <div className={`overflow-hidden ${toggleSearchDropdown ? "overflow-visible max-h-[2000px]" : "overflow-hidden max-h-0"} transition-all duration-500 ease-in-out px-5`}>
+              <div
+                style={{ overflow: toggleSearchDropdown ? panelOverflow : "hidden" }}
+                className={`transition-all duration-500 ease-in-out px-5 ${toggleSearchDropdown ? "max-h-[3000px]" : "max-h-0"}`}
+                onTransitionEnd={() => {
+                  if (toggleSearchDropdown) setPanelOverflow("visible");
+                }}
+              >
+
+                {/* Custom Fields toggle — sits above everything else in the panel */}
+                {customFieldMasters.length > 0 && (
+                  <div className="flex items-center justify-between mt-5 mb-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomFields((s) => !s)}
+                      className={`flex items-center gap-2 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-full border transition-colors
+            ${showCustomFields
+                          ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
+                          : "bg-white text-gray-600 border-gray-300 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"}`}
+                    >
+                      <MdFilterList size={14} />
+                      Custom Fields
+                      {activeCustomFieldCount > 0 && (
+                        <span className={`text-[10px] rounded-full px-1.5 leading-4 ${showCustomFields ? "bg-white text-[var(--color-primary)]" : "bg-[var(--color-primary)] text-white"}`}>
+                          {activeCustomFieldCount}
+                        </span>
+                      )}
+                      <IoIosArrowDown size={10} className={`transition-transform ${showCustomFields ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {showCustomFields && activeCustomFieldCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearCustomFieldFilters}
+                        className="text-red-500 cursor-pointer hover:underline text-xs"
+                      >
+                        Clear custom fields
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Custom Fields section — only exists in the DOM while open, so it can never be clipped */}
+                {showCustomFields && customFieldMasters.length > 0 && (
+                  <div className="mt-4 mb-5 pb-5 border-b border-gray-200">
+                    <div className="grid grid-cols-3 gap-5 max-md:grid-cols-1 max-lg:grid-cols-2">
+                      {customFieldMasters.map((key) => {
+                        const options = customFieldOptions[key] || [];
+                        const useDropdown = isDropdownFriendly(options);
+
+                        return (
+                          <div key={key}>
+                            {useDropdown ? (
+                              <SingleSelect
+                                options={options}
+                                label={humanizeKey(key)}
+                                value={filters.CustomerFields?.[key] || ""}
+                                onChange={(v) => handleCustomFieldChange(key, v)}
+                                isSearchable
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                value={filters.CustomerFields?.[key] || ""}
+                                onChange={(e) => handleCustomFieldChange(key, e.target.value)}
+                                placeholder={`Search ${humanizeKey(key)}...`}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-[var(--color-primary)]"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-5 my-5">
                   <div className="grid grid-cols-3 gap-5 max-md:grid-cols-1 max-lg:grid-cols-2">
                     <ObjectSelect
@@ -3377,15 +3708,14 @@ export default function Customer() {
                           const updatedFilters = {
                             ...filters,
                             Campaign: [selectedObj.Name],
-                            CustomerType: [],   // reset
+                            CustomerType: [],
                             CustomerSubType: []
                           };
                           setFilters(updatedFilters);
-
                           setDependent(prev => ({
                             ...prev,
                             Campaign: { id: selectedObj._id, name: selectedObj.Name },
-                            CustomerType: { id: "", name: "" },   // reset
+                            CustomerType: { id: "", name: "" },
                             CustomerSubType: { id: "", name: "" }
                           }));
                           handleSelectChange("Campaign", selectedObj.Name, updatedFilters)
@@ -3404,21 +3734,18 @@ export default function Customer() {
                         if (selectedObj) {
                           const updatedFilters = {
                             ...filters,
-                            CustomerType: [selectedObj.Name],   // reset
+                            CustomerType: [selectedObj.Name],
                             CustomerSubType: []
                           };
                           setFilters(updatedFilters);
-
-
                           setDependent(prev => ({
                             ...prev,
-                            CustomerType: { id: selectedObj._id, name: selectedObj.Name },   // reset
+                            CustomerType: { id: selectedObj._id, name: selectedObj.Name },
                             CustomerSubType: { id: "", name: "" }
                           }));
                           handleSelectChange("CustomerType", selectedObj.Name, updatedFilters)
                         }
                       }}
-
                     />
 
                     <ObjectSelect
@@ -3428,7 +3755,6 @@ export default function Customer() {
                       getLabel={(item) => item?.Name || ""}
                       getId={(item) => item?._id || ""}
                       onChange={(selectedId) => {
-
                         const selectedObj = fieldOptions.CustomerSubtype.find((i) => i._id === selectedId);
                         if (selectedObj) {
                           const updatedFilters = {
@@ -3436,7 +3762,6 @@ export default function Customer() {
                             CustomerSubType: [selectedObj.Name]
                           };
                           setFilters(updatedFilters);
-
                           setDependent(prev => ({
                             ...prev,
                             CustomerSubType: { id: selectedObj._id, name: selectedObj.Name }
@@ -3445,7 +3770,6 @@ export default function Customer() {
                         }
                       }}
                     />
-
 
                     <ObjectSelect
                       options={Array.isArray(fieldOptions?.City) ? fieldOptions.City : []}
@@ -3462,7 +3786,6 @@ export default function Customer() {
                             Location: []
                           };
                           setFilters(updatedFilters);
-
                           setDependent(prev => ({
                             ...prev,
                             City: { id: selectedObj._id, name: selectedObj.Name },
@@ -3486,7 +3809,6 @@ export default function Customer() {
                             Location: [selectedObj.Name]
                           };
                           setFilters(updatedFilters);
-
                           setDependent(prev => ({
                             ...prev,
                             Location: { id: selectedObj._id, name: selectedObj.Name },
@@ -3521,138 +3843,58 @@ export default function Customer() {
                     />
 
                     <SingleSelect options={Array.isArray(fieldOptions?.ReferenceId) ? fieldOptions.ReferenceId : []} value={filters.ReferenceId[0]} label={getLabel("ReferenceId", "Reference Id")} onChange={(v) => handleSelectChange("ReferenceId", v)} isSearchable />
-                    {/*   <SingleSelect options={Array.isArray(fieldOptions?.MinPrice) ? fieldOptions.MinPrice : []} value={filters.MinPrice[0]} label={getLabel("MinPrice", "Min Price")} onChange={(v) => handleSelectChange("MinPrice", v)} isSearchable />
-                    <SingleSelect options={Array.isArray(fieldOptions?.MaxPrice) ? fieldOptions.MaxPrice : []} value={filters.MaxPrice[0]} label={getLabel("MaxPrice", "Max Price")} onChange={(v) => handleSelectChange("MaxPrice", v)} isSearchable /> */}
-
                     <SingleSelect options={Array.isArray(fieldOptions?.LeadType) ? fieldOptions.LeadType : []} value={filters.LeadType[0]} label={getLabel("LeadType", "Lead Type")} onChange={(v) => handleSelectChange("LeadType", v)} isSearchable />
                     <SingleSelect options={Array.isArray(fieldOptions?.LeadTemperature) ? fieldOptions.LeadTemperature : []} value={filters.LeadTemperature[0]} label={getLabel("LeadTemperature", "Lead Status")} onChange={(v) => handleSelectChange("LeadTemperature", v)} isSearchable />
-                    {/*   <SingleSelect options={Array.isArray(fieldOptions?.Price) ? fieldOptions.Price : []} value={filters.Price[0]} label={getLabel("Price", "Price")} onChange={(v) => handleSelectChange("Price", v)} isSearchable /> */}
-                    {/* <SingleSelect options={Array.isArray(fieldOptions?.isFavourite) ? fieldOptions.isFavourite : []} value={filters.isFavourite[0]} label="favroutie" onChange={(v) => handleSelectChange("isFavourite", v)}  /> */}
-
                     <SingleSelect options={Array.isArray(fieldOptions?.User) ? fieldOptions.User : []} value={filters.User[0]} label="User" onChange={(v) => handleSelectChange("User", v)} isSearchable />
-
-                    <SingleSelect options={["10", "25", "50", "100"]} value={filters.Limit[0]} label="Limit" onChange={(v) => {
-
-                      handleSelectChange("Limit", v)
-                    }} />
+                    <SingleSelect options={["10", "25", "50", "100"]} value={filters.Limit[0]} label="Limit" onChange={(v) => { handleSelectChange("Limit", v) }} />
                     <DateSelector label="From" value={filters.StartDate[0]} onChange={(v) => handleSelectChange("StartDate", v)} />
                     <DateSelector label="To" value={filters.EndDate[0]} onChange={(v) => handleSelectChange("EndDate", v)} />
-                    <PriceRange
-                      filters={filters}
-                      handleSelectChange={handleSelectChange}
-                    />
+                    <PriceRange filters={filters} handleSelectChange={handleSelectChange} />
                     <div>
                       <input
                         id="favouriteFilter"
                         type="checkbox"
                         className="hidden"
                         checked={filters.isFavourite}
-                        onChange={(e) =>
-                          handleSelectChange("isFavourite", e.target.checked)
-                        }
+                        onChange={(e) => handleSelectChange("isFavourite", e.target.checked)}
                       />
-
                       <label
                         htmlFor="favouriteFilter"
-                        className={`
-    inline-flex items-center justify-center
-    h-10 px-4 rounded-md border
-    text-sm font-medium cursor-pointer
-    transition-colors duration-200 gap-2
-    ${filters.isFavourite
+                        className={`inline-flex items-center justify-center h-10 px-4 rounded-md border text-sm font-medium cursor-pointer transition-colors duration-200 gap-2
+              ${filters.isFavourite
                             ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
-                            : "bg-white text-gray-700 border-gray-300"
-                          }
-  `}
+                            : "bg-white text-gray-700 border-gray-300"}`}
                       >
                         {filters.isFavourite ? <MdFavorite /> : <MdFavoriteBorder />}
                         Favourite
                       </label>
                     </div>
-
                   </div>
-
-
                 </div>
 
                 {/* Keyword Search */}
-                <form className="flex  max-lg:flex-col justify-between items-center gap-2"
+                <form className="flex max-lg:flex-col justify-between items-center gap-2"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (keywordInput.trim() === "")
-                      return
+                    if (keywordInput.trim() === "") return
                     setAiLoading(true);
                     setCurrentStep(STEPS.SEARCH)
                     aiGenieSearch();
                   }}
                 >
-
                   <div className=" w-[80%] ">
                     <div>
                       <div className=" flex justify-between">
-                        <label className="flex gap-1 mb-2 items-center text-sm font-bold text-[var(--color-secondary-darker)] ml-1">{aiLoading ? <span>
-                          <BounceLoader
-                            loading={true}
-                            color="var(--color-primary)"
-                            size={25}
-                            aria-label="Loading Spinner"
-                            data-testid="loader"
-                          /></span> : <span><img className=" w-[25px] " src="/aiBot.png" /></span>
-                        }
+                        <label className="flex gap-1 mb-2 items-center text-sm font-bold text-[var(--color-secondary-darker)] ml-1">
+                          {aiLoading ? <span><BounceLoader loading={true} color="var(--color-primary)" size={25} aria-label="Loading Spinner" data-testid="loader" /></span> : <span><img className=" w-[25px] " src="/aiBot.png" /></span>}
                           <div className="">AI Genie</div>
-
-
                         </label>
-                        {/*  {isListening && (
-                          <div className="flex items-center gap-2.5 mt-2 ml-1 px-3 py-2 rounded-xl bg-red-50 border border-red-100 w-fit">
-                           
-                            <div className="flex items-center gap-[3px]">
-                              {[0, 1, 2, 3].map((i) => (
-                                <span
-                                  key={i}
-                                  className="block w-[3px] rounded-full bg-red-500"
-                                  style={{
-                                    animation: `soundBar 0.8s ease-in-out infinite alternate`,
-                                    animationDelay: `${i * 0.15}s`,
-                                    height: "14px",
-                                  }}
-                                />
-                              ))}
-                            </div>
-
-                            <p className="text-red-500 text-xs font-semibold tracking-wide">
-                              Listening…
-                            </p>
-
-                           
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                            </span>
-
-                            <style>{`
-      @keyframes soundBar {
-        from { transform: scaleY(0.3); opacity: 0.5; }
-        to   { transform: scaleY(1);   opacity: 1;   }
-      }
-    `}</style>
-                          </div>
-                        )} */}
                       </div>
                       <p className={`text-gray-400 font-light text-xs ml-2 mb-2  flex items-center gap-[1px] `}>
-                        <span
-                          className={`transition-opacity duration-300 `}
-                        >
-                          {currentStep}
-                        </span>
-
-                        {aiLoading && <span className="translate-y-[2px]">
-                          <BeatLoader size={2} color="gray" />
-                        </span>}
-
+                        <span className={`transition-opacity duration-300 `}>{currentStep}</span>
+                        {aiLoading && <span className="translate-y-[2px]"><BeatLoader size={2} color="gray" /></span>}
                       </p>
                       <div className="">
-
                         <div className=" flex justify-between items-center border border-gray-300 rounded-md w-full">
                           <input
                             type="text"
@@ -3661,24 +3903,9 @@ export default function Customer() {
                             value={keywordInput}
                             onChange={(e) => setKeywordInput(e.target.value)}
                           />
-                          <span
-                            className={`relative mr-3 cursor-pointer flex items-center justify-center`}
-                            onClick={() => {
-                              playSound();      // 🔊 sound plays
-                              startListening(); // 🎤 mic starts
-                            }}
-                          >
-                            {/* Pulse Ring */}
-                            {isListening && (
-                              <span className="absolute inline-flex h-8 w-8 rounded-full bg-red-400 opacity-75 animate-ping"></span>
-                            )}
-
-                            {/* Mic Icon */}
-                            <span
-                              className={`relative z-10 p-2 rounded-full transition-all duration-300 
-    ${isListening ? "bg-red-500 text-white scale-110" : "text-gray-500 hover:text-blue-500"}
-  `}
-                            >
+                          <span className={`relative mr-3 cursor-pointer flex items-center justify-center`} onClick={() => { playSound(); startListening(); }}>
+                            {isListening && (<span className="absolute inline-flex h-8 w-8 rounded-full bg-red-400 opacity-75 animate-ping"></span>)}
+                            <span className={`relative z-10 p-2 rounded-full transition-all duration-300 ${isListening ? "bg-red-500 text-white scale-110" : "text-gray-500 hover:text-blue-500"}`}>
                               <FaMicrophone />
                             </span>
                           </span>
@@ -3686,44 +3913,27 @@ export default function Customer() {
                         </div>
 
                         <div className={` mt-5 overflow-hidden transition-all duration-300 ${toggleAiGenieSearchBy ? " h-[150px]" : " h-0"}`}>
-                          {/* Unselected Fields */}
                           <div className="flex flex-wrap gap-2 px-3 mb-5">
                             {SEARCH_FIELDS.filter(f => !filters.SearchIn.includes(f)).map((field) => (
                               <button
                                 key={field}
                                 type="button"
                                 className="px-2 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-100 transition"
-                                onClick={() =>
-                                  setFilters(prev => ({
-                                    ...prev,
-                                    SearchIn: [...prev.SearchIn, field],
-                                  }))
-                                }
+                                onClick={() => setFilters(prev => ({ ...prev, SearchIn: [...prev.SearchIn, field] }))}
                               >
                                 {field.toLowerCase()}
                               </button>
                             ))}
                           </div>
-
-                          {/* Selected Fields */}
                           <div className="">
                             {filters.SearchIn.length > 0 && <h5 className=" text-gray-500 text-sm my-2 mx-2">Selected</h5>}
                             <div className="flex flex-wrap gap-2 px-3">
-
                               {filters.SearchIn.map((field) => (
-                                <div
-                                  key={field}
-                                  className="group relative flex items-center px-2 py-1 border border-blue-400 rounded-md text-sm bg-blue-100"
-                                >
+                                <div key={field} className="group relative flex items-center px-2 py-1 border border-blue-400 rounded-md text-sm bg-blue-100">
                                   {field.toLowerCase()}
                                   <button
                                     className="ml-2 opacity-0 cursor-pointer group-hover:opacity-100 transition-opacity text-sm text-[var(--color-primary)]"
-                                    onClick={() =>
-                                      setFilters(prev => ({
-                                        ...prev,
-                                        SearchIn: prev.SearchIn.filter(f => f !== field),
-                                      }))
-                                    }
+                                    onClick={() => setFilters(prev => ({ ...prev, SearchIn: prev.SearchIn.filter(f => f !== field) }))}
                                   >
                                     <IoMdClose />
                                   </button>
@@ -3733,30 +3943,23 @@ export default function Customer() {
                           </div>
                         </div>
                       </div>
-
                     </div>
-
                   </div>
-
                   <div className={` flex justify-center items-center w-[30%] transition duration-300  ${toggleAiGenieSearchBy ? " lg:-mt-32" : " lg:mt-5"} `}>
-                    {!aiLoading ? <button type="submit" className="border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-all duration-300 cursor-pointer px-3 py-2  rounded-md">
-                      Explore
-                    </button> : <button type="button" className="flex gap-1 justify-center items-center border border-[var(--color-primary)]  bg-[var(--color-primary)] text-white transition-all duration-300 cursor-pointer px-3 py-2  rounded-md">
-                      Exploring <HashLoader
-                        loading={true}
-                        color="white"
-                        size={12}
-                        aria-label="Loading Spinner"
-                        data-testid="loader"
-                      />
-                    </button>}
-
+                    {!aiLoading ? (
+                      <button type="submit" className="border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-all duration-300 cursor-pointer px-3 py-2  rounded-md">
+                        Explore
+                      </button>
+                    ) : (
+                      <button type="button" className="flex gap-1 justify-center items-center border border-[var(--color-primary)]  bg-[var(--color-primary)] text-white transition-all duration-300 cursor-pointer px-3 py-2  rounded-md">
+                        Exploring <HashLoader loading={true} color="white" size={12} aria-label="Loading Spinner" data-testid="loader" />
+                      </button>
+                    )}
                     <button type="reset" onClick={clearFilter} className="text-red-500 cursor-pointer hover:underline text-sm px-5 py-2  rounded-md ml-3">
                       Clear Search
                     </button>
                   </div>
                 </form>
-
               </div>
             </div>
             {/*  <AgentSelector
@@ -3775,46 +3978,41 @@ export default function Customer() {
   aiGenieSearch={aiGenieSearch}
   clearFilter={clearFilter}
 /> */}
-            <div className="  relative" ref={scrollRef}>
+            <div className="relative" ref={scrollRef}>
 
-              <div className=" flex justify-between items-center sticky top-0 left-0 overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full">
+              <div className="flex justify-between items-center sticky top-0 left-0 overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden w-full">
                 <div className="flex gap-5 items-center px-3 py-4 text-[13px] min-w-max text-gray-700">
 
-                  <label htmlFor="selectall" className=" relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)]  rounded-tr-sm rounded-br-sm  border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer">
-                    <div className=" absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300 "></div>
+                  <label htmlFor="selectall" className="relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)] rounded-tr-sm rounded-br-sm border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer">
+                    <div className="absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300"></div>
                     <span className="relative">Select All</span>
                   </label>
-                  <button type="button" className=" relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)]  rounded-tr-sm rounded-br-sm  border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer" onClick={() => {
+                  <button type="button" className="relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)] rounded-tr-sm rounded-br-sm border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer" onClick={() => {
                     if (selectedCustomers.length <= 0) toast.error("please select atleast 1 customer")
                     else {
                       setIsAssignOpen(true);
                       fetchUsers()
                     } 0
-                  }}><div className=" absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300 "></div>
+                  }}><div className="absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300"></div>
                     <span className="relative">Asign To</span></button>
-                  <button type="button" className=" relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)]  rounded-tr-sm rounded-br-sm  border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer" onClick={() => {
+                  <button type="button" className="relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)] rounded-tr-sm rounded-br-sm border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer" onClick={() => {
                     if (selectedCustomers.length <= 0) toast.error("please select atleast 1 customer")
                     else {
                       setIsMailAllOpen(true);
                       fetchEmailTemplates()
                     }
-                  }}><div className=" absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300 "></div>
+                  }}><div className="absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300"></div>
                     <span className="relative">Email All</span></button>
-                  <button type="button" className=" relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)]  rounded-tr-sm rounded-br-sm  border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer" onClick={() => {
+                  <button type="button" className="relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)] rounded-tr-sm rounded-br-sm border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer" onClick={() => {
                     if (selectedCustomers.length <= 0) toast.error("please select atleast 1 customer")
                     else {
-                      setIsWhatsappAllOpen(true);
-                      fetchWhatsappTemplates()
+                      setIsActionMenuOpen(true);
                     }
-                  }}><div className=" absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300 "></div>
-                    <span className="relative">Whatsapp All</span></button>
-                  {/*                 <button type="button" className=" relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)]  rounded-tr-sm rounded-br-sm  border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer">
-                  <div className=" absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300 "></div>
-                  <span className="relative ">Mass Update</span>
-                </button> */}
+                  }}><div className="absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300"></div>
+                    <span className="relative">Whatsapp</span></button>
 
                   {
-                    admin?.role !== "user" && <button type="button" className=" relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)]  rounded-tr-sm rounded-br-sm  border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer" onClick={() => {
+                    admin?.role !== "user" && <button type="button" className="relative overflow-hidden py-[2px] group hover:bg-[var(--color-primary-lighter)] hover:text-white text-[var(--color-primary)] bg-[var(--color-primary-lighter)] rounded-tr-sm rounded-br-sm border-l-[3px] px-2 border-l-[var(--color-primary)] cursor-pointer" onClick={() => {
                       if (customerData.length > 0) {
                         if (selectedCustomers.length < 1) {
                           const firstPageIds = currentRows.map((c) => c._id);
@@ -3824,205 +4022,278 @@ export default function Customer() {
                         setIsDeleteAllDialogOpen(true);
                         setDeleteAllDialogData({});
                       }
-                    }}><div className=" absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300 "></div>
-                      <span className="relative ">Delete All</span>
+                    }}><div className="absolute top-0 left-0 z-0 h-full bg-[var(--color-primary)] w-0 group-hover:w-full transition-all duration-300"></div>
+                      <span className="relative">Delete All</span>
                     </button>
                   }
 
                 </div>
-
                 {
-                  isFilteredTrigger && <p className={`text-gray-400 font-light text-xs mx-3  mt-2  flex items-center gap-[1px] `}>
+                  isFilteredTrigger && <p className="text-gray-400 font-light text-xs mx-3 mt-2 flex items-center gap-[1px]">
                     Customers Found {totalCustomers}
                   </p>
                 }
-                {selectedCustomers.length > 0 && <p className=" text-gray-400 font-extralight text-sm mx-3">selected {selectedCustomers.length}</p>}
+                {selectedCustomers.length > 0 && <p className="text-gray-400 font-extralight text-sm mx-3">selected {selectedCustomers.length}</p>}
               </div>
               <Tablesetting columns={columns} setColumns={setColumns} />
-              <div className=" max-h-[600px]  w-full overflow-y-auto">
-                <table className="table-auto relative w-full border-separate border-spacing-0 text-sm border border-gray-200">
-                  <thead className="bg-[var(--color-primary)] h-16 text-white sticky top-0 left-0 z-[5]">
+              {/* Scroll hint — mouse users have no trackpad gesture, so the scrollbar below is kept visible/thick instead of hidden, and can be dragged directly */}
+              <div className="flex items-center gap-1.5 px-3 pt-2 pb-1 text-xs text-gray-400">
+                <span>Drag the bottom scrollbar or use Shift + scroll to see all columns</span>
+              </div>
+              <div
+                className="max-h-[600px] w-full overflow-auto rounded-lg border border-gray-200 scroll-smooth
+      [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3
+      [&::-webkit-scrollbar-track]:bg-gray-100
+      [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-solid [&::-webkit-scrollbar-thumb]:border-gray-100
+      hover:[&::-webkit-scrollbar-thumb]:bg-gray-400
+      [scrollbar-width:auto] [scrollbar-color:#d1d5db_#f3f4f6]"
+              >
+                <table className="table-auto min-w-full border-separate border-spacing-0 text-sm">
+                  <thead className="bg-[var(--color-primary)] text-white sticky top-0 " style={{ zIndex: 1 }}>
                     <tr>
-
-                      {/* ✅ SELECT ALL CHECKBOX COLUMN */}
-                      <th className="px-2 py-3 border border-[var(--color-secondary-dark)] bg-[var(--color-primary)] sticky left-0 z-20 text-left">
-                        <input
-                          id="selectall"
-                          type="checkbox"
-                          className="hidden"
-                          checked={
-                            currentRows.length > 0 &&
-                            currentRows.every((r) => selectedCustomers.includes(r._id))
-                          }
-                          onChange={handleSelectAll}
-                        />
+                      {/* SELECT ALL CHECKBOX COLUMN — pinned left with z-40 */}
+                      <th className="px-3 py-3.5 sticky left-0 z-40 bg-[var(--color-primary)] text-left align-middle w-12 min-w-[3rem] border-b border-r border-white/15">
+                        <div className="flex items-center justify-center">
+                          <input
+                            id="selectall"
+                            type="checkbox"
+                            className="w-4 h-4 rounded cursor-pointer accent-white"
+                            checked={
+                              currentRows.length > 0 &&
+                              currentRows.every((r) => selectedCustomers.includes(r._id))
+                            }
+                            onChange={handleSelectAll}
+                          />
+                        </div>
                       </th>
 
+                      {/* DYNAMIC COLUMNS — restored z-40 on sno header */}
                       {columns
-                        .filter(col => col.visible)
-                        .map((header, index) => (
+                        .filter((col) => col.visible && col.key !== "actions")
+                        .map((header) => (
                           <th
                             key={header.key}
-                            className={`px-2 py-3 border border-[var(--color-secondary-dark)] text-left  
-              ${header.key === "sno" ? "sticky left-7.5 z-20 bg-[var(--color-primary)]" : ""}`}
+                            className={`px-4 py-3.5 text-left align-middle font-semibold text-xs uppercase tracking-wide whitespace-nowrap border-b border-r border-white/15
+            ${header.key === "sno"
+                                ? "sticky left-12 z-40 bg-[var(--color-primary)] shadow-[6px_0_6px_-6px_rgba(0,0,0,0.25)]"
+                                : ""
+                              }
+            ${{
+                                sno: "w-16 text-center",
+                                campaign: "min-w-[150px] max-w-[210px] whitespace-normal",
+                                type: "min-w-[110px]",
+                                subtype: "min-w-[120px]",
+                                leadtype: "min-w-[120px]",
+                                City: "min-w-[110px]",
+                                Area: "min-w-[130px] whitespace-normal",
+                                Email: "min-w-[200px]",
+                                Facillities: "min-w-[200px] max-w-[300px] whitespace-normal",
+                                CustomerId: "min-w-[120px]",
+                                ClientId: "min-w-[120px]",
+                                Adderess: "min-w-[230px] max-w-[330px] whitespace-normal",
+                                CustomerYear: "min-w-[100px] text-center",
+                                Other: "min-w-[200px] max-w-[300px] whitespace-normal",
+                                name: "min-w-[170px] max-w-[240px] whitespace-normal",
+                                description: "min-w-[240px] max-w-[380px] whitespace-normal",
+                                location: "min-w-[150px] whitespace-normal",
+                                sublocation: "min-w-[150px] whitespace-normal",
+                                contact: "min-w-[190px]",
+                                assign: "min-w-[180px] whitespace-normal",
+                                reference: "min-w-[100px] text-center",
+                                url: "min-w-[180px]",
+                                video: "min-w-[180px]",
+                                googlemap: "min-w-[180px]",
+                                price: "min-w-[110px]",
+                                date: "min-w-[120px]",
+                              }[header.key] ||
+                              (header.key.startsWith("cf_")
+                                ? "min-w-[160px] whitespace-normal"
+                                : "min-w-[140px] whitespace-normal")
+                              }
+          `}
                           >
                             {header.label}
                           </th>
                         ))}
 
+                      {/* ACTIONS COLUMN — pinned right with z-40 */}
+                      {columns.find((col) => col.key === "actions")?.visible !== false && (
+                        <th className="px-3 py-3.5 sticky right-0 z-40 bg-[var(--color-primary)] text-left align-middle font-semibold text-xs uppercase tracking-wide min-w-[130px] border-b border-white/15 shadow-[-6px_0_6px_-6px_rgba(0,0,0,0.25)]">
+                          Actions
+                        </th>
+                      )}
                     </tr>
                   </thead>
-
                   <tbody>
                     {customerTableLoader ?
                       <tr>
-                        <td colSpan={12} className="text-center py-4 text-gray-500">
+                        <td colSpan={columns.filter(col => col.visible && col.key !== "actions").length + 1 + ((columns.find((col) => col.key === "actions")?.visible !== false) ? 1 : 0)} className="text-center py-6 text-gray-500">
                           Loading customers...
                         </td>
                       </tr> : currentRows.length > 0 ? (
-                        currentRows.map((item, index) => (
-                          <tr key={item._id} className="border-t hover:bg-[#f7f6f3] transition-all duration-200">
+                        currentRows.map((item, index) => {
+                          const rowBg = index % 2 === 0 ? "bg-white" : "bg-gray-50/70";
+                          return (
+                            <tr key={item._id} className={`${rowBg} hover:bg-[#f7f6f3] transition-colors duration-150`}>
 
-                            {/* ✅ ROW CHECKBOX */}
-                            <td className="px-2 py-3 sticky left-0 bg-white  border border-gray-200">
-                              <input
-                                type="checkbox"
-                                checked={selectedCustomers.includes(item._id)}
-                                onChange={() => handleSelectRow(item._id)}
-                              />
-                            </td>
+                              {/* ROW CHECKBOX — pinned left. Same fixed w-12 as the header cell above it. */}
+                              <td className={`px-3 py-3 sticky left-0 align-top w-12 min-w-[3rem] border-b border-r border-gray-200 ${rowBg}`}>
+                                <div className="flex items-center justify-center pt-0.5">
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[var(--color-primary)]"
+                                    checked={selectedCustomers.includes(item._id)}
+                                    onChange={() => handleSelectRow(item._id)}
+                                  />
+                                </div>
+                              </td>
 
-                            {columns.filter(col => col.visible).map((col) => {
-                              let cellValue;
-                              if (col.key.startsWith("cf_")) {
-                                const originalKey = col.key.replace("cf_", "");
-                                cellValue = item.CustomerFields?.[originalKey] ?? "-";
-                              } else {
-                                switch (col.key) {
-                                  case "sno":
-                                    cellValue = (currentTablePage - 1) * rowsPerTablePage + (index + 1);
-                                    break;
-                                  case "campaign":
-                                    cellValue = item.Campaign;
-                                    break;
-                                  case "type":
-                                    cellValue = item.Type;
-                                    break;
-                                  case "subtype":
-                                    cellValue = item.SubType;
-                                    break;
-                                  case "leadtype":
-                                    cellValue = item.LeadType;
-                                    break;
-                                  case "City":
-                                    cellValue = item.City;
-                                    break;
-                                  case "Area":
-                                    cellValue = item.Area;
-                                    break;
-                                  case "Email":
-                                    cellValue = item.Email;
-                                    break;
-                                  case "Facillities":
-                                    cellValue = item.Facillities;
-                                    break;
-                                  case "CustomerId":
-                                    cellValue = item.CustomerId;
-                                    break;
-                                  case "ClientId":
-                                    cellValue = item.ClientId;
-                                    break;
-                                  case "Adderess":
-                                    cellValue = (<>
-                                      <span
-                                        className="text-blue-600 cursor-pointer underline"
-                                        onClick={() => {
-                                          setSelectedAddress(item.Adderess);
-                                          setIsMapOpen(true);
-                                        }}
-                                      >
-                                        {item.Adderess}
-                                      </span>
-                                    </>);
-                                    break;
-                                  case "CustomerYear":
-                                    cellValue = item.CustomerYear;
-                                    break;
-                                  case "Other":
-                                    cellValue = item.Other;
-                                    break;
-                                  case "name":
-                                    cellValue = item.Name;
-                                    break;
-                                  case "description":
-                                    cellValue = item.Description;
-                                    break;
-                                  case "location":
-                                    cellValue = item.Location;
-                                    break;
-                                  case "sublocation":
-                                    cellValue = item.SubLocation;
-                                    break;
-                                  case "contact":
-                                    cellValue = (
-                                      <>
-                                        {item.ContactNumber && (
-                                          <>
-                                            <div className=" text-center" onClick={() => handleAgentCalling(item._id)}>{item.ContactNumber}</div>
-                                            <span className="flex">
-                                              <Button
-                                                component="a"
-                                                onClick={() => handleCall({ customerNumber: item.ContactNumber })}
-                                                sx={{
-                                                  backgroundColor: "#E8F5E9",
-                                                  color: "var(--color-primary)",
-                                                  minWidth: "14px",
-                                                  height: "24px",
-                                                  borderRadius: "8px",
-                                                  margin: "4px"
-                                                }}
+                              {columns.filter(col => col.visible && col.key !== "actions").map((col) => {
+                                let cellValue;
+                                if (col.key.startsWith("cf_")) {
+                                  const originalKey = col.key.replace("cf_", "");
+                                  cellValue = item.CustomerFields?.[originalKey] ?? "-";
+                                } else {
+                                  switch (col.key) {
+                                    case "sno":
+                                      cellValue = (currentTablePage - 1) * rowsPerTablePage + (index + 1);
+                                      break;
+                                    case "campaign":
+                                      cellValue = item.Campaign || "-";
+                                      break;
+                                    case "type":
+                                      cellValue = item.Type ? (
+                                        <span className="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">{item.Type}</span>
+                                      ) : "-";
+                                      break;
+                                    case "subtype":
+                                      cellValue = item.SubType ? (
+                                        <span className="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">{item.SubType}</span>
+                                      ) : "-";
+                                      break;
+                                    case "leadtype":
+                                      cellValue = item.LeadType ? (
+                                        <span className="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">{item.LeadType}</span>
+                                      ) : "-";
+                                      break;
+                                    case "City":
+                                      cellValue = item.City || "-";
+                                      break;
+                                    case "Area":
+                                      cellValue = item.Area || "-";
+                                      break;
+                                    case "Email":
+                                      cellValue = item.Email ? (
+                                        <span className="text-gray-700 break-all">{item.Email}</span>
+                                      ) : "-";
+                                      break;
+                                    case "Facillities":
+                                      cellValue = <span className="text-gray-600 leading-relaxed">{item.Facillities || "-"}</span>;
+                                      break;
+                                    case "CustomerId":
+                                      cellValue = <span className="font-mono text-xs text-gray-600">{item.CustomerId || "-"}</span>;
+                                      break;
+                                    case "ClientId":
+                                      cellValue = <span className="font-mono text-xs text-gray-600">{item.ClientId || "-"}</span>;
+                                      break;
+                                    case "Adderess":
+                                      cellValue = item.Adderess ? (
+                                        <span
+                                          className="text-blue-600 cursor-pointer underline leading-relaxed"
+                                          onClick={() => {
+                                            setSelectedAddress(item.Adderess);
+                                            setIsMapOpen(true);
+                                          }}
+                                        >
+                                          {item.Adderess}
+                                        </span>
+                                      ) : "-";
+                                      break;
+                                    case "CustomerYear":
+                                      cellValue = item.CustomerYear || "-";
+                                      break;
+                                    case "Other":
+                                      cellValue = <span className="text-gray-600 leading-relaxed">{item.Other || "-"}</span>;
+                                      break;
+                                    case "name":
+                                      cellValue = <span className="font-semibold text-gray-900">{item.Name || "-"}</span>;
+                                      break;
+                                    case "description":
+                                      cellValue = <span className="text-gray-600 leading-relaxed">{item.Description || "-"}</span>;
+                                      break;
+                                    case "location":
+                                      cellValue = item.Location || "-";
+                                      break;
+                                    case "sublocation":
+                                      cellValue = item.SubLocation || "-";
+                                      break;
+                                    case "contact":
+                                      cellValue = (
+                                        <>
+                                          {item.ContactNumber && (
+                                            <div className="flex flex-col items-start gap-1">
+                                              <span
+                                                className="font-medium text-gray-800 cursor-pointer"
+                                                onClick={() => handleAgentCalling(item._id)}
                                               >
-                                                <FaPhone size={12} />
-                                              </Button>
-                                              <Button
-                                                sx={{
-                                                  backgroundColor: "#E8F5E9",
-                                                  color: "var(--color-primary)",
-                                                  minWidth: "14px",
-                                                  height: "24px",
-                                                  borderRadius: "8px",
-                                                  margin: "4px"
-                                                }}
-                                                onClick={() => {
-                                                  setSelectedCustomers([item._id]);
-                                                  setSelectUser([item._id]);
-                                                  setIsMailAllOpen(true);
-                                                  fetchEmailTemplates();
-                                                }}
-                                              >
-                                                <MdEmail size={14} />
-                                              </Button>
-                                              <Button
-                                                onClick={() => {
-                                                  setSelectedCustomers([item._id]);
-                                                  setSelectUser([item._id]);
-                                                  setIsWhatsappAllOpen(true);
-                                                  fetchWhatsappTemplates();
-                                                }}
-                                                sx={{
-                                                  backgroundColor: "#E8F5E9",
-                                                  color: "var(--color-primary)",
-                                                  minWidth: "14px",
-                                                  height: "24px",
-                                                  borderRadius: "8px",
-                                                  margin: "4px"
-                                                }}
-                                              >
-                                                <FaWhatsapp size={14} />
-                                              </Button>
-                                            </span>
-                                            {duplicateContacts[item.ContactNumber] && (
-                                              <span>
+                                                {item.ContactNumber}
+                                              </span>
+
+                                              <div className="flex items-center gap-1">
+                                                <Button
+                                                  component="a"
+                                                  onClick={() => handleCall({ customerNumber: item.ContactNumber })}
+                                                  sx={{
+                                                    backgroundColor: "#E8F5E9",
+                                                    color: "var(--color-primary)",
+                                                    minWidth: "14px",
+                                                    height: "24px",
+                                                    borderRadius: "8px",
+                                                    margin: "2px",
+                                                  }}
+                                                >
+                                                  <FaPhone size={12} />
+                                                </Button>
+
+                                                <Button
+                                                  sx={{
+                                                    backgroundColor: "#E8F5E9",
+                                                    color: "var(--color-primary)",
+                                                    minWidth: "14px",
+                                                    height: "24px",
+                                                    borderRadius: "8px",
+                                                    margin: "2px",
+                                                  }}
+                                                  onClick={() => {
+                                                    setSelectedCustomers([item._id]);
+                                                    setSelectUser([item._id]);
+                                                    setIsMailAllOpen(true);
+                                                    fetchEmailTemplates();
+                                                  }}
+                                                >
+                                                  <MdEmail size={14} />
+                                                </Button>
+
+                                                <Button
+                                                  onClick={() => {
+                                                    setSelectedCustomers([item._id]);
+                                                    setSelectUser([item._id]);
+                                                    setIsActionMenuOpen(true);
+                                                  }}
+                                                  sx={{
+                                                    backgroundColor: "#E8F5E9",
+                                                    color: "var(--color-primary)",
+                                                    minWidth: "14px",
+                                                    height: "24px",
+                                                    borderRadius: "8px",
+                                                    margin: "2px",
+                                                  }}
+                                                >
+                                                  <FaWhatsapp size={14} />
+                                                </Button>
+                                              </div>
+
+                                              {duplicateContacts[item.ContactNumber] && (
                                                 <Button
                                                   onClick={() => {
                                                     setIsTableDialogOpen(true);
@@ -4034,227 +4305,299 @@ export default function Customer() {
                                                     minWidth: "100px",
                                                     height: "24px",
                                                     borderRadius: "8px",
-                                                    margin: "4px"
+                                                    margin: "2px",
                                                   }}
                                                 >
                                                   <FaEye size={12} />
                                                 </Button>
-                                              </span>
-                                            )}
-                                          </>
-                                        )}
-                                      </>
-                                    );
-                                    break;
-                                  case "assign":
-                                    cellValue = item.AssignTo.map((e: any) => e.name + ", ");
-                                    break;
-                                  case "reference":
-                                    cellValue = item.ReferenceId;
-                                    break;
-                                  case "url":
-                                    cellValue = item.URL;
-                                    break;
-                                  case "video":
-                                    cellValue = item.Video;
-                                    break;
-                                  case "googlemap":
-                                    cellValue = item.GoogleMap;
-                                    break;
-                                  case "price":
-                                    cellValue = item.Price;
-                                    break;
-                                  case "date":
-                                    cellValue = item.Date;
-                                    break;
-                                  case "actions":
-                                    cellValue = (
-                                      <div className="grid grid-cols-2 gap-3 items-center h-full">
-                                        <Button
-                                          sx={{ backgroundColor: "#E8F5E9", color: "var(--color-primary)", minWidth: "32px", height: "32px", borderRadius: "8px" }}
-                                          onClick={() => {
-                                            setSelectedCustomerFollowupId(item._id);
-                                            setIsFollowupOpen(true);
-                                          }}
-                                        >
-                                          <MdAdd />
-                                        </Button>
-                                        <Button
-                                          sx={{ backgroundColor: "#E8F5E9", color: "var(--color-primary)", minWidth: "32px", height: "32px", borderRadius: "8px" }}
-                                          onClick={() => handleEditClick(item._id)}
-                                        >
-                                          <MdEdit />
-                                        </Button>
-                                        {admin?.role === "administrator" && <Button
-                                          sx={{ backgroundColor: "#FDECEA", color: "#C62828", minWidth: "32px", height: "32px", borderRadius: "8px" }}
-                                          onClick={() => {
-                                            setIsDeleteDialogOpen(true);
-                                            setDialogType("delete");
-                                            setDialogData({
-                                              id: item._id,
-                                              customerName: item.Name,
-                                              ContactNumber: item.ContactNumber,
-                                            });
-                                          }}
-                                        >
-                                          <MdDelete />
-                                        </Button>}
-                                        <Button
-                                          sx={{ backgroundColor: "#FFF0F5", color: item.isFavourite ? "#E91E63" : "#C62828", minWidth: "32px", height: "32px", borderRadius: "8px" }}
-                                          onClick={() =>
-                                            handleFavouriteToggle(item._id, item.Name, item.ContactNumber, item.isFavourite ?? false)
-                                          }
-                                        >
-                                          {item.isFavourite ? <MdFavorite /> : <MdFavoriteBorder />}
-                                        </Button>
-                                        <Button
-                                          className=" bg-gray-500"
-                                          sx={{ backgroundColor: item.isChecked ? "#E8F5E9" : "#FFF0F5", color: item.isChecked ? "var(--color-primary)" : "#E91E63", minWidth: "32px", height: "32px", borderRadius: "8px" }}
-                                          onClick={() =>
-                                            handleChecked({ id: item._id, isChecked: item.isChecked })
-                                          }
-                                        >
-                                          {item.isChecked ? <IoCheckmarkDoneOutline size={20} /> : <IoCheckmark size={20} />}
-                                        </Button>
-                                        <Button
-                                          sx={{ backgroundColor: "#E8F5E9", color: "var(--color-primary)", minWidth: "32px", height: "32px", borderRadius: "8px" }}
-                                          onClick={() => {
-                                            setIsFollowupDialogOpen(true);
-                                            handleFollowups(item._id, item.Name);
-                                          }}
-                                        >
-                                          <UserPlus />
-                                        </Button>
-                                        <Button
-                                          sx={{
-                                            backgroundColor: temperatureConfig[item.LeadTemperature || "cold"]?.bg,
-                                            color: temperatureConfig[item.LeadTemperature || "cold"]?.color,
-                                            minWidth: "32px",
-                                            height: "32px",
-                                            borderRadius: "8px",
-                                            transition: "all 0.2s ease",
-                                            "&:hover": {
-                                              filter: "brightness(0.95)",
-                                              transform: "scale(1.05)"
-                                            }
-                                          }}
-                                          onClick={() => {
-                                            setTemperatureDialogData({
-                                              id: item._id,
-                                              name: item.CustomerName,
-                                              current: item.LeadTemperature || "cold"
-                                            });
-                                            setIsTemperatureDialogOpen(true);
-                                          }}
-                                        >
-                                          {temperatureConfig[item.LeadTemperature || "cold"]?.icon}
-                                        </Button>
-                                        <Button
-                                          onClick={() => {
-                                            router.push(`/customer/${item._id}`)
-                                          }}
-                                          sx={{
-                                            backgroundColor: "#E8F5E9",
-                                            color: "var(--color-primary)",
-                                            minWidth: "32px",
-                                            height: "32px",
-                                            borderRadius: "8px",
-                                            transition: "all 0.2s ease",
-                                            "&:hover": {
-                                              filter: "brightness(0.95)",
-                                              transform: "scale(1.05)"
-                                            }
-                                          }}
-                                        >
-                                          <FaEye size={12} />
-                                        </Button>
-                                        <Button
-                                          sx={{
-                                            backgroundColor: "var(--color-primary-lighter)",
-                                            color: "var(--color-primary)",
-                                            minWidth: "32px",
-                                            height: "32px",
-                                            borderRadius: "8px",
-                                            transition: "all 0.2s ease",
-                                            "&:hover": {
-                                              backgroundColor: "var(--color-primary-light)",
-                                              transform: "scale(1.05)"
-                                            }
-                                          }}
-                                          onClick={() => {
-                                            setShortlistDialogData({
-                                              id: item._id,
-                                              name: item.Name,
-                                            });
-                                            setIsShortlistDialogOpen(true);
-                                          }}
-                                        >
-                                          {
-                                            item?.Shortlisted ? (
-                                              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-                                              </svg>
-                                            ) : (
-                                              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-                                              </svg>
-                                            )
-                                          }
-                                        </Button>
-                                        <Button
-                                          onClick={() => {
-                                            setDealCloseData({
-                                              id: item._id,
-                                              name: item.Name,
-                                              current: item.LeadTemperature || "cold"
-                                            });
-                                            setIsDealCloseOpen(true);
-                                          }}
-                                          sx={{
-                                            backgroundColor: "#E8F5E9",
-                                            color: "var(--color-primary)",
-                                            minWidth: "32px",
-                                            height: "32px",
-                                            borderRadius: "8px",
-                                            transition: "all 0.2s ease",
-                                            "&:hover": {
-                                              filter: "brightness(0.95)",
-                                              transform: "scale(1.05)"
-                                            }
-                                          }}
-                                        >
-                                          <FaHandshakeSimple size={20} />
-                                        </Button>
-
-                                      </div>
-                                    );
-                                    break;
-                                  default:
-                                    cellValue = null;
+                                              )}
+                                            </div>
+                                          )}
+                                        </>
+                                      );
+                                      break;
+                                    case "assign":
+                                      cellValue = item.AssignTo && item.AssignTo.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                          {item.AssignTo.map((e: any, i: number) => (
+                                            <span key={i} className="inline-block px-2 py-0.5 rounded-full bg-[var(--color-primary-lighter)] text-[var(--color-primary)] text-xs font-medium">
+                                              {e.name}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      ) : "-";
+                                      break;
+                                    case "reference":
+                                      cellValue = item.ReferenceId || "-";
+                                      break;
+                                    case "url":
+                                      cellValue = item.URL ? (
+                                        <a href={item.URL} target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline break-all">
+                                          {item.URL}
+                                        </a>
+                                      ) : "-";
+                                      break;
+                                    case "video":
+                                      cellValue = item.Video ? (
+                                        <a href={item.Video} target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline break-all">
+                                          {item.Video}
+                                        </a>
+                                      ) : "-";
+                                      break;
+                                    case "googlemap":
+                                      cellValue = item.GoogleMap ? (
+                                        <a href={item.GoogleMap} target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline break-all">
+                                          {item.GoogleMap}
+                                        </a>
+                                      ) : "-";
+                                      break;
+                                    case "price":
+                                      cellValue = <span className="font-medium text-gray-800 tabular-nums">{item.Price ?? "-"}</span>;
+                                      break;
+                                    case "date":
+                                      cellValue = item.Date || "-";
+                                      break;
+                                    default:
+                                      cellValue = null;
+                                  }
                                 }
-                              }
 
-                              return (
-                                <td key={col.key} className={`px-2 py-3 border border-gray-200 break-words whitespace-normal align-top 
-                    ${col.key !== "sno" ? "min-w-[100px]" : ""}
-                    ${col.key === "description" && item.Description ? "min-w-[160px]" : ""} 
-                    ${col.key === "sno" ? "sticky left-7.5  bg-white max-w-[60px]" : ""}
-                    ${col.key === "type" ? "max-w-[80px]" : ""}
-                    ${col.key === "subtype" ? "max-w-[90px]" : ""} 
-                    ${col.key === "contact" ? "max-w-[140px]" : ""} 
-                    ${col.key === "reference" ? "max-w-[70px]" : ""}
-                    ${col.key === "date" ? "min-w-[100px]" : ""} 
-                    ${col.key === "actions" ? "min-w-[90px] align-top" : ""}
-                `}>
-                                  {cellValue}
+                                const layoutClass = {
+                                  sno: "w-16 text-center whitespace-nowrap",
+                                  campaign: "min-w-[150px] max-w-[210px] whitespace-normal break-words",
+                                  type: "min-w-[110px] whitespace-nowrap",
+                                  subtype: "min-w-[120px] whitespace-nowrap",
+                                  leadtype: "min-w-[120px] whitespace-nowrap",
+                                  City: "min-w-[110px] whitespace-nowrap",
+                                  Area: "min-w-[130px] whitespace-normal break-words",
+                                  Email: "min-w-[200px] break-all",
+                                  Facillities: "min-w-[200px] max-w-[300px] whitespace-normal break-words",
+                                  CustomerId: "min-w-[120px] whitespace-nowrap",
+                                  ClientId: "min-w-[120px] whitespace-nowrap",
+                                  Adderess: "min-w-[230px] max-w-[330px] whitespace-normal break-words",
+                                  CustomerYear: "min-w-[100px] text-center whitespace-nowrap",
+                                  Other: "min-w-[200px] max-w-[300px] whitespace-normal break-words",
+                                  name: "min-w-[170px] max-w-[240px] whitespace-normal break-words",
+                                  description: "min-w-[240px] max-w-[380px] whitespace-normal break-words",
+                                  location: "min-w-[150px] whitespace-normal break-words",
+                                  sublocation: "min-w-[150px] whitespace-normal break-words",
+                                  contact: "min-w-[190px] whitespace-nowrap",
+                                  assign: "min-w-[180px] whitespace-normal break-words",
+                                  reference: "min-w-[100px] text-center whitespace-nowrap",
+                                  url: "min-w-[180px] break-all",
+                                  video: "min-w-[180px] break-all",
+                                  googlemap: "min-w-[180px] break-all",
+                                  price: "min-w-[110px] whitespace-nowrap",
+                                  date: "min-w-[120px] whitespace-nowrap",
+                                }[col.key] || (col.key.startsWith("cf_") ? "min-w-[160px] whitespace-normal break-words" : "min-w-[140px] whitespace-normal break-words");
+
+                                return (
+                                  <td
+                                    key={col.key}
+                                    className={`px-4 py-3 align-top border-b border-r border-gray-200 text-gray-700 ${layoutClass}
+                          ${col.key === "sno" ? `sticky left-12 shadow-[6px_0_6px_-6px_rgba(0,0,0,0.12)] ${rowBg}` : ""}
+                        `}
+                                  >
+                                    {cellValue}
+                                  </td>
+                                );
+                              })}
+
+                              {/* ACTIONS CELL — pinned right. Shadow only (matches header), keeps the grid clean
+                      at the frozen edge instead of stacking a border on top of the shadow.
+                      Gated on the same "actions" visible flag as the header cell above. */}
+                              {(columns.find((col) => col.key === "actions")?.visible !== false) && (
+                                <td className={`px-3 py-3 align-top sticky right-0 min-w-[130px] border-b border-gray-200 shadow-[-6px_0_6px_-6px_rgba(0,0,0,0.12)] ${rowBg}`}>
+                                  <div className="grid grid-cols-2 gap-2 items-center">
+                                    <Button
+                                      sx={{ backgroundColor: "#E8F5E9", color: "var(--color-primary)", minWidth: "32px", height: "32px", borderRadius: "8px" }}
+                                      onClick={() => {
+                                        setSelectedCustomerFollowupId(item._id);
+                                        setIsFollowupOpen(true);
+                                      }}
+                                    >
+                                      <MdAdd />
+                                    </Button>
+                                    <Button
+                                      sx={{ backgroundColor: "#E8F5E9", color: "var(--color-primary)", minWidth: "32px", height: "32px", borderRadius: "8px" }}
+                                      onClick={() => handleEditClick(item._id)}
+                                    >
+                                      <MdEdit />
+                                    </Button>
+                                    {admin?.role === "administrator" && <Button
+                                      sx={{ backgroundColor: "#FDECEA", color: "#C62828", minWidth: "32px", height: "32px", borderRadius: "8px" }}
+                                      onClick={() => {
+                                        setIsDeleteDialogOpen(true);
+                                        setDialogType("delete");
+                                        setDialogData({
+                                          id: item._id,
+                                          customerName: item.Name,
+                                          ContactNumber: item.ContactNumber,
+                                        });
+                                      }}
+                                    >
+                                      <MdDelete />
+                                    </Button>}
+                                    <Button
+                                      sx={{ backgroundColor: "#FFF0F5", color: item.isFavourite ? "#E91E63" : "#C62828", minWidth: "32px", height: "32px", borderRadius: "8px" }}
+                                      onClick={() =>
+                                        handleFavouriteToggle(item._id, item.Name, item.ContactNumber, item.isFavourite ?? false)
+                                      }
+                                    >
+                                      {item.isFavourite ? <MdFavorite /> : <MdFavoriteBorder />}
+                                    </Button>
+                                    <Button
+                                      sx={{ backgroundColor: item.isChecked ? "#E8F5E9" : "#FFF0F5", color: item.isChecked ? "var(--color-primary)" : "#E91E63", minWidth: "32px", height: "32px", borderRadius: "8px" }}
+                                      onClick={() =>
+                                        handleChecked({ id: item._id, isChecked: item.isChecked })
+                                      }
+                                    >
+                                      {item.isChecked ? <IoCheckmarkDoneOutline size={20} /> : <IoCheckmark size={20} />}
+                                    </Button>
+                                    <Button
+                                      sx={{ backgroundColor: "#E8F5E9", color: "var(--color-primary)", minWidth: "32px", height: "32px", borderRadius: "8px" }}
+                                      onClick={() => {
+                                        setIsFollowupDialogOpen(true);
+                                        handleFollowups(item._id, item.Name);
+                                      }}
+                                    >
+                                      <UserPlus size={20} />
+                                    </Button>
+                                    <Button
+                                      sx={{
+                                        backgroundColor: temperatureConfig[item.LeadTemperature || "cold"]?.bg,
+                                        color: temperatureConfig[item.LeadTemperature || "cold"]?.color,
+                                        minWidth: "32px",
+                                        height: "32px",
+                                        borderRadius: "8px",
+                                        transition: "all 0.2s ease",
+                                        "&:hover": {
+                                          filter: "brightness(0.95)",
+                                          transform: "scale(1.05)"
+                                        }
+                                      }}
+                                      onClick={() => {
+                                        setTemperatureDialogData({
+                                          id: item._id,
+                                          name: item.CustomerName,
+                                          current: item.LeadTemperature || "cold"
+                                        });
+                                        setIsTemperatureDialogOpen(true);
+                                      }}
+                                    >
+                                      {temperatureConfig[item.LeadTemperature || "cold"]?.icon}
+                                    </Button>
+                                    <Button
+                                      onClick={() => {
+                                        handleViewClick(item._id)
+                                      }}
+                                      sx={{
+                                        backgroundColor: "#E8F5E9",
+                                        color: "var(--color-primary)",
+                                        minWidth: "32px",
+                                        height: "32px",
+                                        borderRadius: "8px",
+                                        transition: "all 0.2s ease",
+                                        "&:hover": {
+                                          filter: "brightness(0.95)",
+                                          transform: "scale(1.05)"
+                                        }
+                                      }}
+                                    >
+                                      <FaEye size={12} />
+                                    </Button>
+                                    <Button
+                                      sx={{
+                                        backgroundColor: "var(--color-primary-lighter)",
+                                        color: "var(--color-primary)",
+                                        minWidth: "32px",
+                                        height: "32px",
+                                        borderRadius: "8px",
+                                        transition: "all 0.2s ease",
+                                        "&:hover": {
+                                          backgroundColor: "var(--color-primary-light)",
+                                          transform: "scale(1.05)"
+                                        }
+                                      }}
+                                      onClick={() => {
+                                        setShortlistDialogData({
+                                          id: item._id,
+                                          name: item.Name,
+                                        });
+                                        setIsShortlistDialogOpen(true);
+                                      }}
+                                    >
+                                      {
+                                        item?.Shortlisted ? (
+                                          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                                          </svg>
+                                        ) : (
+                                          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                                          </svg>
+                                        )
+                                      }
+                                    </Button>
+                                    <Button
+                                      onClick={() => {
+                                        setDealCloseData({
+                                          id: item._id,
+                                          name: item.Name,
+                                          current: item.LeadTemperature || "cold"
+                                        });
+                                        setIsDealCloseOpen(true);
+                                      }}
+                                      sx={{
+                                        backgroundColor: "#E8F5E9",
+                                        color: "var(--color-primary)",
+                                        minWidth: "32px",
+                                        height: "32px",
+                                        borderRadius: "8px",
+                                        transition: "all 0.2s ease",
+                                        "&:hover": {
+                                          filter: "brightness(0.95)",
+                                          transform: "scale(1.05)"
+                                        }
+                                      }}
+                                    >
+                                      <FaHandshakeSimple size={20} />
+                                    </Button>
+                                    <Button
+                                      onClick={() => {
+                                        setArchiveData({
+                                          id: item._id,
+                                          name: item.Name,
+                                        });
+                                        setIsArchiveOpen(true);
+                                      }}
+                                      sx={{
+                                        backgroundColor: "#E8F5E9",
+                                        color: "var(--color-primary)",
+                                        minWidth: "32px",
+                                        height: "32px",
+                                        borderRadius: "8px",
+                                        transition: "all 0.2s ease",
+                                        "&:hover": {
+                                          filter: "brightness(0.95)",
+                                          transform: "scale(1.05)"
+                                        }
+                                      }}
+                                    >
+                                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" />
+                                      </svg>
+                                    </Button>
+                                  </div>
                                 </td>
-                              );
-                            })}
-                          </tr>
-                        ))
+                              )}
+
+                            </tr>
+                          );
+                        })
                       ) : (
                         <tr>
-                          <td colSpan={10} className="text-center py-4 w-full text-gray-500">
+                          <td colSpan={columns.filter(col => col.visible && col.key !== "actions").length + 1 + ((columns.find((col) => col.key === "actions")?.visible !== false) ? 1 : 0)} className="text-center py-6 w-full text-gray-500">
                             No data available.
                           </td>
                         </tr>
@@ -4313,12 +4656,9 @@ export default function Customer() {
                 >
                   <ChevronsRight size={16} />
                 </button>
-
-
               </div>
             </div>
           </section>
-
         </div>
       </div>
     </ProtectedRoute>

@@ -1,3 +1,3 @@
 
 
-export const sidebarLogoPath="/applogo.jpeg"
+export const sidebarLogoPath="/domain-logo.png"

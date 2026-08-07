@@ -12,6 +12,7 @@ import { Admin, UpdateAdminDetailsData } from "@/store/auth.interface";
 import BackButton from "@/app/component/buttons/BackButton";
 import { handleFieldOptions } from "@/app/utils/handleFieldOptions";
 import { getCity } from "@/store/masters/city/city";
+import { useAuth } from "@/context/AuthContext";
 
 interface ErrorInterface {
   [key: string]: string;
@@ -20,7 +21,7 @@ interface ErrorInterface {
 export default function AdminEditPage() {
   const { id } = useParams();
   const router = useRouter();
-
+  const { admin } = useAuth();
   const [userData, setUserData] = useState({
     Role: "",
     FirstName: "",
@@ -59,7 +60,7 @@ export default function AdminEditPage() {
       Email: data.email || "",
       MobileNumber: data.phone || "",
       City: data.city || "",
-      Status:data.status || "",
+      Status: data.status || "",
       AddressLine1: data.AddressLine1 || "",
       AddressLine2: data.AddressLine2 || "",
     });
@@ -125,14 +126,14 @@ export default function AdminEditPage() {
       [
 
         { key: "City", fetchFn: getCity },
-         { key:"Status", staticData: ["active", "inactive"] }
+        { key: "Status", staticData: ["active", "inactive"] }
       ],
       setFieldOptions
     );
   }
 
   // ✅ Dropdown values
-  const roles = ["administrator", "city_admin", "user"];
+  const roles = admin?.role === "administrator" ? ["administrator", "city_admin", "user", "agent"] : ["city_admin", "user"];
   const cities = ["Jaipur", "Ajmer", "Udaipur"];
 
   return (

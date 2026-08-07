@@ -34,7 +34,7 @@ interface FieldError {
 
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const AGENT_TYPES = ["Matching", "Followup", "Qualification", "Calling", "Recommendation", "Mining", "Analytics", "Social", "Script", "Assistant" /* "Success" */];
+const AGENT_TYPES = ["Matching", "Followup", "Qualification", "Calling", "Recommendation", "Mining", "Analytics", "Social", "Script", "Email","Video", "Assistant", /* "Success" */];
 
 const SUB_TYPES: Record<string, string[]> = {
     Qualification: ["Lead Scoring", "Pipeline Analytics", "Meeting Scheduler", "Proposal Generator", "Deal Tracking"],
@@ -48,6 +48,8 @@ const SUB_TYPES: Record<string, string[]> = {
     Analytics: ["Customer Segmentation", "Churn Analysis", "Sales Forecasting", "Behavioral Analytics", "Risk Assessment"],
     Social: ["Content Creation", "Post Scheduling", "Engagement Analysis", "Trend Monitoring", "Competitor Analysis"],
     Script: ["Script Creation", "Lead Analyse Before Generating", "Tips for Intraction"],
+    Email: ["Email Campaign Run", "Email Leads", "Generate Email Template"],
+    Video: ["Video Generation", "Video Script Generation"],
     Assistant: ["Webhook Integration", "Chat Assistant", "Data collection", "Action Perform"]
 };
 
@@ -73,6 +75,8 @@ const TYPE_ICON: Record<string, string | ReactElement> = {
     Analytics: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
     Social: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335521/img-4_damgxf.png" alt="Social" className=" object-contain w-10 h-10" />,
     Script: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335553/img-10_ajsusz.png" alt="Social" className=" object-contain w-10 h-10" />,
+    Email: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335523/img-7_xjwzbl.png" alt="Followup" className=" object-contain w-10 h-10" />,
+    Video: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335520/img-3_scja92.png" alt="Recommendation" className=" object-contain w-10 h-10" />,
     Assistant: <img src="https://res.cloudinary.com/djipgt6vc/image/upload/v1774335552/img-8_twulvb.png" alt="Analytics" className=" object-contain w-10 h-10" />,
 };
 
@@ -86,6 +90,8 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string; ri
     Analytics: { bg: "bg-rose-50 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-800", ring: "ring-rose-300 dark:ring-rose-700" },
     Social: { bg: "bg-green-50 dark:bg-green-950", text: "text-green-700 dark:text-green-300", border: "border-green-200 dark:border-green-800", ring: "ring-green-300 dark:ring-green-700" },
     Script: { bg: "bg-amber-50 dark:bg-amber-950", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800", ring: "ring-amber-300 dark:ring-amber-700" },
+    Email: { bg: "bg-amber-50 dark:bg-amber-950", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800", ring: "ring-amber-300 dark:ring-amber-700" },
+    Video :  { bg: "bg-sky-50 dark:bg-sky-950", text: "text-sky-700 dark:text-sky-300", border: "border-sky-200 dark:border-sky-800", ring: "ring-sky-300 dark:ring-sky-700" },
     Assistant: { bg: "bg-rose-50 dark:bg-rose-950", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-800", ring: "ring-rose-300 dark:ring-rose-700" },
 };
 
