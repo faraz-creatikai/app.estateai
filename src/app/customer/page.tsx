@@ -1560,7 +1560,7 @@ export default function Customer() {
             ? "Customers unassigned successfully"
             : "Customers assigned successfully"
         );
-        await getCustomers();
+        //  await getCustomers();
         setIsAssignOpen(false);
         return response;
       }
@@ -3230,7 +3230,7 @@ export default function Customer() {
                   </span>
                 )}
               </button>
-               <button
+              <button
                 onClick={() => router.push("/customer/archieved")}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--color-primary)]/25 bg-[var(--color-primary)]/8 dark:bg-[var(--color-primary)]/12 text-[var(--color-primary)] text-[13px] font-semibold transition-all duration-150 hover:bg-[var(--color-primary)]/15 hover:border-[var(--color-primary)]/40 active:scale-[0.97] cursor-pointer"
               >
@@ -4624,7 +4624,7 @@ export default function Customer() {
                   onClick={() =>
                     setCurrentTablePage((prev) => Math.max(prev - 1, 1))
                   }
-                  disabled={currentTablePage === 1}
+                  disabled={currentTablePage === 1 || isFetchingMore}
                   className="px-3 py-1 bg-gray-200 border border-gray-300 rounded disabled:opacity-50"
                 >
                   Prev
@@ -4643,7 +4643,10 @@ export default function Customer() {
                       setCurrentTablePage(prev => prev + 1);
                     }
                   }}
-                  disabled={!hasMoreCustomers && currentTablePage === totalTablePages}
+                  disabled={
+                    isFetchingMore ||
+                    (!hasMoreCustomers && currentTablePage === totalTablePages)
+                  }
                   className="px-3 py-1 bg-gray-200 border border-gray-300 rounded disabled:opacity-50"
                 >
                   Next
