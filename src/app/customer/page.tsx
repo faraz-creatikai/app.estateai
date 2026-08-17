@@ -2237,10 +2237,16 @@ export default function Customer() {
         isOpen={isFollowupOpen}
         customerId={selectedCustomerFollowupId}
         onClose={() => {
-          setIsFollowupOpen(false)
-          setSelectedCustomerFollowupId(null)
+          setIsFollowupOpen(false);
+          setSelectedCustomerFollowupId(null);
+        }}
+        onArchived={(id) => {
+          setCustomerData((prevData) =>
+            prevData.filter((customer) => customer?._id !== id)
+          );
         }}
       />
+      
       {
         isfollowupDialogOpen && Array.isArray(followupDialogData) && followupDialogData.length > 0 && (
           <PopupMenu onClose={() => { setIsFollowupDialogOpen(false); setFollowupDialogData([]); }}>

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { MdPhone, MdEmail } from "react-icons/md";
-import { FaWhatsapp } from "react-icons/fa";
+import { FaEye, FaWhatsapp } from "react-icons/fa";
 import { AiOutlineHeart } from "react-icons/ai";
 import { GrFormNext, GrFormPrevious } from "react-icons/gr";
 import { MdEdit, MdDelete, MdAdd } from "react-icons/md";
@@ -22,6 +22,7 @@ interface LeadsSectionProps<T extends Record<string, any>> {
     labelLeads: LabelConfig[];
     onFollowup?: (lead: T) => void;
     onAdd?: (id: string) => void;
+    onView?: (id: string) => void;
     onEdit?: (id: string) => void;
     onDelete?: (lead: T) => void;
 }
@@ -31,6 +32,7 @@ export default function FollowupTable<T extends Record<string, any>>({
     labelLeads,
     onFollowup,
     onAdd,
+    onView,
     onEdit,
     onDelete,
 }: LeadsSectionProps<T>) {
@@ -101,6 +103,7 @@ export default function FollowupTable<T extends Record<string, any>>({
                                 })}
                             </div>
 
+<div className="flex flex-col gap-10 items-center  justify-center">
                             <button
                                 onClick={() => onAdd?.(lead.customerid)}
                                 className="p-2 bg-gray-100 dark:bg-[var(--color-primary)] dark:text-white rounded-full shadow text-[var(--color-primary)]"
@@ -108,6 +111,15 @@ export default function FollowupTable<T extends Record<string, any>>({
                                 <MdAdd size={20} />
 
                             </button>
+
+                            <button
+                                onClick={() => onView?.(lead.customerid)}
+                                className="p-2 bg-gray-100 dark:bg-[var(--color-primary)] dark:text-white rounded-full shadow text-[var(--color-primary)]"
+                            >
+                                <FaEye size={20} />
+                            </button>
+                            </div>
+
 
                         </div>
 

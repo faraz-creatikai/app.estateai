@@ -7,6 +7,7 @@ import DateSelector from "@/app/component/DateSelector";
 import SingleSelect from "@/app/component/SingleSelect";
 import SaveButton from "@/app/component/buttons/SaveButton";
 import { addCustomerFollowup } from "@/store/customerFollowups";
+import { archieveCustomer } from "@/store/customer";
 import { getStatusType } from "@/store/masters/statustype/statustype";
 import { handleFieldOptions } from "@/app/utils/handleFieldOptions";
 import toast from "react-hot-toast";
@@ -18,15 +19,18 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   customerId: string | null;
+  onArchived?: (id: string) => void; // lets parent remove this customer from its local list
 }
 
 interface ErrorInterface {
   [key: string]: string;
 }
 
-const FollowupAddDialog = ({ isOpen, onClose, customerId }: Props) => {
+const FollowupAddDialog = ({ isOpen, onClose, customerId, onArchived }: Props) => {
   const [fieldOptions, setFieldOptions] = useState<Record<string, any[]>>({});
   const [errors, setErrors] = useState<ErrorInterface>({});
+  const [archiveOnSave, setArchiveOnSave] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     StartDate: dayjs().format("YYYY-MM-DD"),
@@ -38,6 +42,9 @@ const FollowupAddDialog = ({ isOpen, onClose, customerId }: Props) => {
   useEffect(() => {
     if (isOpen) {
       fetchFields();
+    } else {
+      // reset toggle each time dialog closes so it never carries over to the next customer
+      setArchiveOnSave(false);
     }
   }, [isOpen]);
 
@@ -57,8 +64,8 @@ const FollowupAddDialog = ({ isOpen, onClose, customerId }: Props) => {
     const newErrors: ErrorInterface = {};
     if (!formData.StartDate) newErrors.StartDate = "Start Date is required";
     if (!formData.StatusType) newErrors.StatusType = "Status is required";
-   /*  if (!formData.FollowupNextDate)
-      newErrors.FollowupNextDate = "Next Date is required"; */
+    /*  if (!formData.FollowupNextDate)
+       newErrors.FollowupNextDate = "Next Date is required"; */
     if (!formData.Description)
       newErrors.Description = "Description is required";
     return newErrors;
@@ -71,6 +78,8 @@ const FollowupAddDialog = ({ isOpen, onClose, customerId }: Props) => {
       return;
     }
 
+    setSaving(true);
+
     const payload = {
       ...formData,
       customer: customerId as string,
@@ -78,12 +87,26 @@ const FollowupAddDialog = ({ isOpen, onClose, customerId }: Props) => {
 
     const data = await addCustomerFollowup(customerId as string, payload);
 
-    if (data) {
-      toast.success("Followup Added Successfully!");
-      onClose();
-    } else {
+    if (!data) {
       toast.error("Failed to add Followup");
+      setSaving(false);
+      return;
     }
+
+    toast.success("Followup Added Successfully!");
+
+    if (archiveOnSave && customerId) {
+      const archiveRes = await archieveCustomer(customerId);
+      if (archiveRes?.success) {
+        toast.success("Customer archived");
+        onArchived?.(customerId);
+      } else {
+        toast.error("Followup saved, but archiving failed");
+      }
+    }
+
+    setSaving(false);
+    onClose();
   };
 
 
@@ -132,25 +155,56 @@ const FollowupAddDialog = ({ isOpen, onClose, customerId }: Props) => {
           />
 
           <div className="relative">
-  <TextareaField
-    name="Description"
-    label="Description"
-    value={formData.Description}
-    onChange={(e) => handleChange("Description", e.target.value)}
-    error={errors.Description}
-  />
+            <TextareaField
+              name="Description"
+              label="Description"
+              value={formData.Description}
+              onChange={(e) => handleChange("Description", e.target.value)}
+              error={errors.Description}
+            />
 
-  {/* 🎤 Voice button */}
-  <div className="absolute top-2 right-2">
-    <VoiceToText
-      value={formData.Description}
-      onChange={(text) => handleChange("Description", text)}
-    />
-  </div>
-</div>
+            {/* 🎤 Voice button */}
+            <div className="absolute top-2 right-2">
+              <VoiceToText
+                value={formData.Description}
+                onChange={(text) => handleChange("Description", text)}
+              />
+            </div>
+          </div>
+
+          {/* Archive on save */}
+          <button
+            type="button"
+            onClick={() => setArchiveOnSave((prev) => !prev)}
+            className={`flex cursor-pointer items-center gap-3 w-full text-left px-4 py-3 rounded-2xl border transition-all ${archiveOnSave
+                ? "border-[var(--color-primary)] bg-[var(--color-primary-lighter)]"
+                : "border-gray-200 bg-gray-50 hover:border-gray-300"
+              }`}
+          >
+            <span
+              className={`shrink-0 w-5 h-5 rounded-md flex items-center justify-center border-2 transition-all ${archiveOnSave
+                  ? "bg-[var(--color-primary)] border-[var(--color-primary)]"
+                  : "bg-white border-gray-300"
+                }`}
+            >
+              {archiveOnSave && (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              )}
+            </span>
+            <span className="flex-1">
+              <span className={`block text-sm font-semibold ${archiveOnSave ? "text-[var(--color-primary)]" : "text-gray-700"}`}>
+                Also archive this customer
+              </span>
+              <span className="block text-xs text-gray-400 mt-0.5">
+                Removes it from your active list only — you can restore it anytime
+              </span>
+            </span>
+          </button>
 
           <div className="flex justify-end pt-4">
-            <SaveButton text="Save" onClick={handleSubmit} />
+            <SaveButton text={saving ? "Saving..." : "Save"} onClick={handleSubmit} />
           </div>
         </div>
       </div>

@@ -377,7 +377,7 @@ export default function CustomerViewDialog({ isOpen, onClose, customerId, onEdit
 
   const containerWidthClass = isFullscreen
     ? "w-[100dvw] h-[100dvh] rounded-none"
-    : "w-[100dvw] max-w-[80dvw] max-h-[95dvh] rounded-2xl";
+    : "w-[100dvw] md:max-w-[80dvw] md:max-h-[95dvh] max-md:w-[100dvw] max-md:h-[100dvh] rounded-2xl";
 
   return (
     <PopupMenu onClose={onClose} isOpen={isOpen}>

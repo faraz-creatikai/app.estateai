@@ -156,10 +156,9 @@ export const deleteFollowup = async (id: string): Promise<{ success: boolean; me
 };
 
 export const addAiFollowup = async (
- data: customerAiFollowupPayloadInterface
+  data: customerAiFollowupPayloadInterface
 ): Promise<any | null> => {
   try {
-    //console.log("customer followup data ",data)
     let response = await fetch(API_ROUTES.FOLLOWUPS.CUSTOMER.ADDAIFOLLOWUP, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -167,11 +166,12 @@ export const addAiFollowup = async (
       credentials: "include"
     });
 
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const result= await response.json();
+    const result = await response.json().catch(() => null);
+    // Return the body even on 4xx/5xx — it carries the real error message.
+    if (!response.ok) return { success: false, message: result?.message || `HTTP ${response.status}` };
     return result;
   } catch (error) {
-    console.log("SERVER ERROR (addCustomerFollowup):", error);
-    return null;
+    console.log("SERVER ERROR (addAiFollowup):", error);
+    return { success: false, message: "Network error. Please try again." };
   }
 };
